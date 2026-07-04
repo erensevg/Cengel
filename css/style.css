@@ -1,0 +1,192 @@
+/* Çengel — sinematik arayüz */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --gold: #e8b84b;
+  --cyan: #63d8ff;
+  --ink:  #10142a;
+  --panel: rgba(13, 18, 42, 0.72);
+  --panel-line: rgba(232, 184, 75, 0.35);
+}
+
+html, body { height: 100%; overflow: hidden; }
+body {
+  background: #070a1a;
+  font-family: "Segoe UI", "Trebuchet MS", Verdana, sans-serif;
+  color: #f3ecd9;
+  -webkit-user-select: none; user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+#app, #app canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+
+#vignette {
+  position: fixed; inset: 0; pointer-events: none; z-index: 3;
+  background: radial-gradient(ellipse at center,
+              transparent 52%, rgba(3, 5, 14, 0.55) 100%);
+}
+
+.hidden { display: none !important; }
+
+/* ---------- Açılış ---------- */
+#title-screen {
+  position: fixed; inset: 0; z-index: 10;
+  display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(ellipse at 50% 38%,
+              rgba(23, 32, 74, 0.55), rgba(4, 6, 16, 0.88) 75%);
+  transition: opacity 1.1s ease;
+}
+#title-screen.fading { opacity: 0; pointer-events: none; }
+
+.title-inner { text-align: center; animation: rise 1.4s cubic-bezier(.2,.9,.3,1) both; }
+@keyframes rise { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; } }
+
+.title-kicker {
+  letter-spacing: 0.55em; font-size: clamp(10px, 1.6vw, 14px);
+  color: var(--cyan); text-shadow: 0 0 18px rgba(99, 216, 255, .6);
+  margin-bottom: 10px;
+}
+.title-word {
+  font-size: clamp(64px, 13vw, 150px);
+  font-weight: 900; letter-spacing: 0.08em; line-height: 1;
+  background: linear-gradient(180deg, #fff6dd 12%, var(--gold) 55%, #8a5f14 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 6px 30px rgba(232, 184, 75, 0.35));
+}
+.title-sub {
+  margin-top: 12px; font-size: clamp(12px, 2vw, 17px);
+  color: #cdd6f4; letter-spacing: 0.18em; opacity: .85;
+}
+.title-buttons { margin-top: 44px; display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+.start-btn {
+  font: inherit; cursor: pointer;
+  padding: 14px 30px; font-size: clamp(14px, 2vw, 18px); font-weight: 700;
+  letter-spacing: .12em; color: #ffe9b0;
+  background: linear-gradient(180deg, rgba(52, 63, 120, .9), rgba(24, 30, 66, .9));
+  border: 1px solid var(--panel-line); border-radius: 14px;
+  box-shadow: 0 8px 26px rgba(0, 0, 0, .45), inset 0 1px 0 rgba(255,255,255,.12);
+  transition: transform .18s ease, box-shadow .18s ease, border-color .18s;
+}
+.start-btn span { display: block; font-size: .68em; font-weight: 400; color: var(--cyan); margin-top: 3px; letter-spacing: .2em; }
+.start-btn:hover {
+  transform: translateY(-3px) scale(1.03);
+  border-color: var(--gold);
+  box-shadow: 0 14px 34px rgba(0,0,0,.55), 0 0 24px rgba(232,184,75,.25);
+}
+.title-hint { margin-top: 34px; font-size: 12px; color: #7d88b8; letter-spacing: .1em; }
+
+/* ---------- HUD ---------- */
+#hud { position: fixed; inset: 0; z-index: 5; pointer-events: none; display: flex; flex-direction: column; }
+
+#hud-top {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 18px; pointer-events: none;
+}
+#hud-name {
+  font-weight: 900; letter-spacing: .22em; font-size: 15px; color: var(--gold);
+  text-shadow: 0 2px 12px rgba(0,0,0,.8);
+}
+#progress-wrap {
+  flex: 1; max-width: 380px; height: 6px; border-radius: 3px;
+  background: rgba(255,255,255,.12); overflow: hidden;
+}
+#progress-bar {
+  height: 100%; width: 0%;
+  background: linear-gradient(90deg, var(--cyan), var(--gold));
+  border-radius: 3px; transition: width .6s cubic-bezier(.2,.9,.3,1);
+  box-shadow: 0 0 12px rgba(99,216,255,.7);
+}
+#hud-buttons { margin-left: auto; display: flex; gap: 8px; pointer-events: auto; }
+#hud-buttons button {
+  font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+  color: #e7ddc2; padding: 8px 13px;
+  background: var(--panel); border: 1px solid var(--panel-line); border-radius: 10px;
+  backdrop-filter: blur(6px); transition: border-color .15s, transform .15s;
+}
+#hud-buttons button:hover { border-color: var(--gold); transform: translateY(-1px); }
+
+/* ---------- İpucu paneli ---------- */
+#clue-panel {
+  pointer-events: none;
+  margin: auto auto 10px; max-width: min(680px, 92vw);
+  display: flex; align-items: center; gap: 14px;
+  padding: 13px 22px;
+  background: var(--panel); border: 1px solid var(--panel-line);
+  border-radius: 16px; backdrop-filter: blur(8px);
+  box-shadow: 0 10px 40px rgba(0,0,0,.5);
+  transition: opacity .3s;
+}
+#clue-panel.empty { opacity: .55; }
+#clue-arrow { font-size: 26px; color: var(--cyan); text-shadow: 0 0 14px rgba(99,216,255,.8); min-width: 30px; text-align: center; }
+#clue-text { font-size: clamp(15px, 2.4vw, 20px); font-weight: 600; letter-spacing: .02em; }
+#clue-text .clue-emoji { font-size: 1.5em; vertical-align: -3px; margin-right: 6px; }
+#clue-text .clue-len { color: #8fa1d8; font-weight: 400; font-size: .8em; margin-left: 8px; }
+
+/* ---------- Ekran klavyesi ---------- */
+#keyboard {
+  pointer-events: auto;
+  padding: 4px 6px calc(10px + env(safe-area-inset-bottom));
+  display: flex; flex-direction: column; gap: 6px; align-items: center;
+}
+.kb-row { display: flex; gap: 5px; justify-content: center; }
+.kb-key {
+  font: inherit; cursor: pointer;
+  min-width: clamp(28px, 8.4vw, 46px); height: clamp(38px, 6.2vh, 48px);
+  font-size: clamp(14px, 2.2vh, 19px); font-weight: 700; color: #f3ecd9;
+  background: linear-gradient(180deg, rgba(46, 56, 106, .92), rgba(22, 27, 58, .92));
+  border: 1px solid rgba(255,255,255,.14); border-radius: 9px;
+  box-shadow: 0 3px 10px rgba(0,0,0,.4);
+  transition: transform .08s, background .12s;
+}
+.kb-key:active { transform: scale(.9); background: var(--gold); color: var(--ink); }
+.kb-key.wide { min-width: clamp(52px, 13vw, 76px); font-size: 15px; }
+
+@media (pointer: fine) and (min-height: 560px) {
+  /* masaüstünde klavye daha ufak dursun */
+  .kb-key { opacity: .88; }
+}
+
+/* ---------- Zafer ---------- */
+#victory {
+  position: fixed; inset: 0; z-index: 9;
+  display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(ellipse at center, rgba(10, 14, 34, .25), rgba(4, 6, 16, .78) 80%);
+  animation: vfade .9s ease both;
+}
+@keyframes vfade { from { opacity: 0; } }
+.victory-inner { text-align: center; animation: rise 1s cubic-bezier(.2,.9,.3,1) both .25s; }
+.victory-word {
+  font-size: clamp(46px, 9vw, 100px); font-weight: 900; letter-spacing: .06em;
+  background: linear-gradient(180deg, #fffbe8, var(--gold) 60%, #96660f);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 4px 26px rgba(232,184,75,.5));
+}
+#victory-stats { margin-top: 14px; font-size: clamp(14px, 2.4vw, 19px); color: #cdd6f4; letter-spacing: .06em; }
+#victory button {
+  font: inherit; cursor: pointer; margin: 30px 6px 0;
+  padding: 13px 28px; font-size: 16px; font-weight: 700; letter-spacing: .1em;
+  color: var(--ink); background: linear-gradient(180deg, #ffe9ad, var(--gold));
+  border: none; border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(232,184,75,.35);
+  transition: transform .15s;
+}
+#victory button:hover { transform: translateY(-2px) scale(1.03); }
+#victory #btn-again { background: var(--panel); color: #e7ddc2; border: 1px solid var(--panel-line); box-shadow: none; }
+
+/* ---------- Doğru kelime bildirimi ---------- */
+#word-toast {
+  position: fixed; left: 50%; top: 18%; z-index: 6;
+  transform: translateX(-50%);
+  font-size: clamp(22px, 4.4vw, 40px); font-weight: 900; letter-spacing: .3em;
+  color: var(--gold); text-shadow: 0 0 26px rgba(232,184,75,.9), 0 3px 8px rgba(0,0,0,.7);
+  pointer-events: none; opacity: 0;
+}
+#word-toast.pop { animation: toast 1.5s cubic-bezier(.2,.9,.3,1) both; }
+@keyframes toast {
+  0%   { opacity: 0; transform: translateX(-50%) translateY(18px) scale(.8); }
+  18%  { opacity: 1; transform: translateX(-50%) translateY(0) scale(1.06); }
+  30%  { transform: translateX(-50%) scale(1); }
+  78%  { opacity: 1; }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-26px); }
+}
