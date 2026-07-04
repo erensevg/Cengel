@@ -1,0 +1,59 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "shared", "shared", "{3AAFEC15-3E84-4438-B6CA-D4B839F6CC2A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mmorpg.Shared", "shared\Mmorpg.Shared\Mmorpg.Shared.csproj", "{646AAA0E-4840-49D6-A769-D081CCB52CE0}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "gateway", "gateway", "{0D80C0C1-E94E-4BC0-A614-9ED322DA3516}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mmorpg.Gateway", "gateway\Mmorpg.Gateway\Mmorpg.Gateway.csproj", "{8F8759E8-51AE-4C84-964B-7943DAD772BC}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "services", "services", "{A49CBAF8-B50B-405E-8412-78048240E7A6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mmorpg.AuthService", "services\Mmorpg.AuthService\Mmorpg.AuthService.csproj", "{EA48EE90-541C-4B1C-A275-1E57580BB202}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mmorpg.GameService", "services\Mmorpg.GameService\Mmorpg.GameService.csproj", "{281F7F97-789C-43FA-880A-AB9104B8D60A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mmorpg.SocialService", "services\Mmorpg.SocialService\Mmorpg.SocialService.csproj", "{3C86DE5C-5645-43E7-A79C-86004D568D10}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{646AAA0E-4840-49D6-A769-D081CCB52CE0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{646AAA0E-4840-49D6-A769-D081CCB52CE0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{646AAA0E-4840-49D6-A769-D081CCB52CE0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{646AAA0E-4840-49D6-A769-D081CCB52CE0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8F8759E8-51AE-4C84-964B-7943DAD772BC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8F8759E8-51AE-4C84-964B-7943DAD772BC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8F8759E8-51AE-4C84-964B-7943DAD772BC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8F8759E8-51AE-4C84-964B-7943DAD772BC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EA48EE90-541C-4B1C-A275-1E57580BB202}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EA48EE90-541C-4B1C-A275-1E57580BB202}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EA48EE90-541C-4B1C-A275-1E57580BB202}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EA48EE90-541C-4B1C-A275-1E57580BB202}.Release|Any CPU.Build.0 = Release|Any CPU
+		{281F7F97-789C-43FA-880A-AB9104B8D60A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{281F7F97-789C-43FA-880A-AB9104B8D60A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{281F7F97-789C-43FA-880A-AB9104B8D60A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{281F7F97-789C-43FA-880A-AB9104B8D60A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3C86DE5C-5645-43E7-A79C-86004D568D10}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3C86DE5C-5645-43E7-A79C-86004D568D10}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3C86DE5C-5645-43E7-A79C-86004D568D10}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3C86DE5C-5645-43E7-A79C-86004D568D10}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{646AAA0E-4840-49D6-A769-D081CCB52CE0} = {3AAFEC15-3E84-4438-B6CA-D4B839F6CC2A}
+		{8F8759E8-51AE-4C84-964B-7943DAD772BC} = {0D80C0C1-E94E-4BC0-A614-9ED322DA3516}
+		{EA48EE90-541C-4B1C-A275-1E57580BB202} = {A49CBAF8-B50B-405E-8412-78048240E7A6}
+		{281F7F97-789C-43FA-880A-AB9104B8D60A} = {A49CBAF8-B50B-405E-8412-78048240E7A6}
+		{3C86DE5C-5645-43E7-A79C-86004D568D10} = {A49CBAF8-B50B-405E-8412-78048240E7A6}
+	EndGlobalSection
+EndGlobal

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Çengel — Sinematik Bulmaca</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧩</text></svg>">
+<link rel="stylesheet" href="css/style.css">
+<script type="importmap">
+{
+  "imports": {
+    "three": "./vendor/three/three.module.min.js",
+    "three/addons/": "./vendor/three/addons/"
+  }
+}
+</script>
+</head>
+<body>
+<div id="app"></div>
+<div id="vignette"></div>
+
+<!-- Açılış ekranı -->
+<div id="title-screen">
+  <div class="title-inner">
+    <div class="title-kicker">TÜRK USULÜ KARE BULMACA</div>
+    <h1 class="title-word">ÇENGEL</h1>
+    <div class="title-sub">Soldan sağa · Yukarıdan aşağıya · Resimli</div>
+    <div class="title-buttons">
+      <button class="start-btn" data-puzzle="0">KOLAY <span>7×7</span></button>
+      <button class="start-btn" data-puzzle="1">ORTA <span>9×9</span></button>
+      <button class="start-btn" data-puzzle="2">ZOR <span>11×11</span></button>
+    </div>
+    <div class="title-hint">Bir zorluk seç, kamera seni tahtaya götürsün</div>
+  </div>
+</div>
+
+<!-- Oyun arayüzü -->
+<div id="hud" class="hidden">
+  <div id="hud-top">
+    <div id="hud-name">ÇENGEL</div>
+    <div id="progress-wrap"><div id="progress-bar"></div></div>
+    <div id="hud-buttons">
+      <button id="btn-hint"  title="Bir harf aç">💡 İpucu</button>
+      <button id="btn-sound" title="Sesi aç / kapat">🔊</button>
+      <button id="btn-menu"  title="Zorluk seçimine dön">☰ Menü</button>
+    </div>
+  </div>
+  <div id="clue-panel" class="empty">
+    <div id="clue-arrow"></div>
+    <div id="clue-text">Bir kareye ya da ipucu kutusuna dokun</div>
+  </div>
+  <div id="keyboard"></div>
+</div>
+
+<!-- Zafer ekranı -->
+<div id="victory" class="hidden">
+  <div class="victory-inner">
+    <div class="victory-word">TEBRİKLER!</div>
+    <div id="victory-stats"></div>
+    <button id="btn-next">SONRAKİ BULMACA →</button>
+    <button id="btn-again">☰ MENÜ</button>
+  </div>
+</div>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
