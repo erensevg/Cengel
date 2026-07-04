@@ -1,3 +1,12 @@
+# Cengel — İki Oyun Bir Repo
+
+1. **Çengel** (bu klasör): Three.js ile sinematik çengel bulmaca — aşağıda.
+2. **Metin Efsanesi** (`mmorpg/`): .NET 8 mikroservis + Three.js tarayıcı
+   MMORPG — kurulum ve mimari için [mmorpg/README.md](mmorpg/README.md),
+   yol haritası için [mmorpg/ROADMAP.md](mmorpg/ROADMAP.md).
+
+---
+
 # Çengel — Sinematik 3B Çengel Bulmaca
 
 Türklere özgü **çengel bulmaca** (ok yönlü kare bulmaca) formatında, Three.js ile
