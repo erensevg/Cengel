@@ -9,20 +9,37 @@ public class PlayerState
     public required Guid UserId { get; init; }
     public required Guid CharacterId { get; init; }
     public required string Name { get; init; }
+    public string MapId = GameConfig.StartMap;
     public int Level;
     public long Xp;
     public long Yang;
     public float X, Z;
     public int Hp, MaxHp;
+    public int Mp, MaxMp;
+    public float MpRegenAcc;
     public bool Dead;
-    public float? TargetX, TargetZ;          // tıkla-yürü hedefi
-    public long? AttackMobId;                // otomatik saldırı hedefi
+    public float? TargetX, TargetZ;
+    public long? AttackMobId;
     public double LastAttackAt;
-    public double LastHitAt;                 // görsel için
-    public bool Dirty;                       // DB'ye yazılacak değişiklik var
-    public int WeaponBonus;                  // kuşanılan silahın katkısı
+    public bool Dirty;
+    public int WeaponBonus;
+    public int SkillPoints;
+    public readonly Dictionary<string, int> Skills = new();       // code -> derece
+    public readonly Dictionary<string, double> Cooldowns = new(); // code -> hazır olacağı an
+    public double BuffUntil;
+    public float BuffMult = 1f;
+    public int QuestIndex;      // kaçıncı görevde (tamamlanan sayısı)
+    public int QuestProgress;
 
-    public int Damage => GameConfig.BaseDamageFor(Level) + WeaponBonus;
+    public int Damage
+    {
+        get
+        {
+            var d = GameConfig.BaseDamageFor(Level) + WeaponBonus;
+            return BuffActive ? (int)(d * BuffMult) : d;
+        }
+    }
+    public bool BuffActive => Environment.TickCount64 / 1000.0 < BuffUntil;
     public long XpNext => GameConfig.XpForLevel(Level + 1);
 }
 
@@ -35,34 +52,42 @@ public class MobState
     public int Hp;
     public bool Dead;
     public double RespawnAt;
-    public string? TargetConnId;             // kovaladığı oyuncu
+    public string? TargetConnId;
     public double LastAttackAt;
-    public readonly HashSet<int> MetinThresholdsHit = [];  // 66/33 bekçi çağrıları
-    public bool Summoned;                    // metin bekçisi: ölünce yeniden doğmaz
+    public readonly HashSet<int> MetinThresholdsHit = [];
+    public bool Summoned;       // dünya olayı / bekçi: ölünce yeniden doğmaz
 }
 
-/// <summary>Bellekteki canlı dünya. Tek harita, tek süreç (yatay ölçek için ROADMAP'e bak).</summary>
+public class MapState
+{
+    public required string Id;
+    public readonly ConcurrentDictionary<string, PlayerState> Players = new();
+    public readonly ConcurrentDictionary<long, MobState> Mobs = new();
+}
+
+/// <summary>Bellekteki canlı dünya: harita başına oyuncular + moblar.</summary>
 public class WorldState
 {
-    public readonly ConcurrentDictionary<string, PlayerState> Players = new(); // connId ->
-    public readonly ConcurrentDictionary<long, MobState> Mobs = new();
-    private long _nextMobId = 1;
+    public readonly Dictionary<string, MapState> Maps = new();
+    private long _nextMobId;
 
     public WorldState()
     {
         var rng = new Random(42);
+        foreach (var map in GameConfig.Maps)
+            Maps[map.Id] = new MapState { Id = map.Id };
         foreach (var zone in GameConfig.Spawns)
             for (var i = 0; i < zone.Count; i++)
             {
                 var a = rng.NextDouble() * Math.PI * 2;
                 var r = zone.Radius * Math.Sqrt(rng.NextDouble());
-                var x = zone.X + (float)(Math.Cos(a) * r);
-                var z = zone.Z + (float)(Math.Sin(a) * r);
-                SpawnMob(zone.MobCode, x, z, summoned: false);
+                SpawnMob(zone.MapId, zone.MobCode,
+                    zone.X + (float)(Math.Cos(a) * r),
+                    zone.Z + (float)(Math.Sin(a) * r), summoned: false);
             }
     }
 
-    public MobState SpawnMob(string code, float x, float z, bool summoned)
+    public MobState SpawnMob(string mapId, string code, float x, float z, bool summoned)
     {
         var def = GameConfig.MobByCode(code);
         var mob = new MobState
@@ -71,23 +96,39 @@ public class WorldState
             Def = def, X = x, Z = z, SpawnX = x, SpawnZ = z,
             Hp = def.MaxHp, Summoned = summoned,
         };
-        Mobs[mob.Id] = mob;
+        Maps[mapId].Mobs[mob.Id] = mob;
         return mob;
     }
 
-    /// <summary>İstemciye giden kompakt dünya anlık görüntüsü.</summary>
-    public object Snapshot() => new
+    public PlayerState? FindPlayer(string connId)
     {
-        players = Players.Values.Select(p => new
+        foreach (var map in Maps.Values)
+            if (map.Players.TryGetValue(connId, out var p)) return p;
+        return null;
+    }
+
+    public bool UserOnline(Guid userId) =>
+        Maps.Values.Any(m => m.Players.Values.Any(p => p.UserId == userId));
+
+    public static string Group(string mapId) => $"map:{mapId}";
+
+    public object Snapshot(string mapId)
+    {
+        var map = Maps[mapId];
+        return new
         {
-            id = p.CharacterId, name = p.Name, x = p.X, z = p.Z,
-            hp = p.Hp, maxHp = p.MaxHp, level = p.Level, dead = p.Dead,
-            moving = p.TargetX.HasValue,
-        }),
-        mobs = Mobs.Values.Where(m => !m.Dead).Select(m => new
-        {
-            id = m.Id, code = m.Def.Code, x = m.X, z = m.Z,
-            hp = m.Hp, maxHp = m.Def.MaxHp,
-        }),
-    };
+            mapId,
+            players = map.Players.Values.Select(p => new
+            {
+                id = p.CharacterId, name = p.Name, x = p.X, z = p.Z,
+                hp = p.Hp, maxHp = p.MaxHp, level = p.Level, dead = p.Dead,
+                moving = p.TargetX.HasValue, buff = p.BuffActive,
+            }),
+            mobs = map.Mobs.Values.Where(m => !m.Dead).Select(m => new
+            {
+                id = m.Id, code = m.Def.Code, x = m.X, z = m.Z,
+                hp = m.Hp, maxHp = m.Def.MaxHp,
+            }),
+        };
+    }
 }

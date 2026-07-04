@@ -5,6 +5,7 @@ import { World } from './world.js';
 const $ = id => document.getElementById(id);
 let world = null, gameConn = null, chatConn = null, cfg = null;
 let selfId = null, stats = null, targetMobId = null;
+let mySkills = {}, currentMapId = null, quest = null;   // quest: {code,title,story,progress,target}
 
 /* ---------------- giriş ---------------- */
 async function auth(path) {
@@ -43,6 +44,7 @@ async function startGame() {
       showTarget(mobId);
       gameConn.invoke('Attack', mobId);
     },
+    onPortalClick() { openTeleport(false); },
   });
 
   gameConn = connect('/hubs/game');
@@ -55,7 +57,21 @@ async function startGame() {
   if (join.error) { $('login-err').textContent = join.error; return; }
   selfId = join.self.id;
   world.selfId = selfId;
+  currentMapId = join.self.mapId;
+  const mapDef = cfg.maps.find(m => m.id === currentMapId);
+  world.setMap(mapDef);
+  $('minimap-zone').textContent = mapDef.name;
   world.applySnapshot(join.world);
+  mySkills = join.skills || {};
+  renderQuickbar();
+  refreshInv().catch(() => {});
+  if (join.quest) {
+    setQuest(join.quest);
+    if (join.quest.isFirst && join.quest.progress === 0)
+      showStory(join.quest.title, join.quest.story);
+  } else {
+    $('quest-track').classList.add('hidden');
+  }
 
   $('pf-name').textContent = join.self.name;
   $('login').classList.add('hidden');
@@ -83,7 +99,11 @@ function wireGameEvents() {
     const ratio = Math.min(1, (s.xp - prev) / Math.max(1, next - prev));
     $('bar-xp').style.width = `${ratio * 100}%`;
     $('txt-xp').textContent = `XP ${s.xp} / ${next}`;
-    $('pf-level').textContent = `Sv ${s.level}`;
+    $('bar-mp').style.width = `${(s.mp / s.maxMp) * 100}%`;
+    $('txt-mp').textContent = `${s.mp} / ${s.maxMp}`;
+    $('sk-points').textContent = `${s.skillPoints} puan`;
+    $('btn-skill').style.borderColor = s.skillPoints > 0 ? 'var(--gold)' : '';
+    $('pf-level').textContent = `Sv ${s.level}${s.buff ? ' 🔥' : ''}`;
     $('pf-yang').textContent = `${s.yang.toLocaleString('tr')} Yang`;
     $('xp-strip').style.width = `${ratio * 100}%`;
     if (!$('char-win').classList.contains('hidden')) renderChar();
@@ -92,6 +112,7 @@ function wireGameEvents() {
     let msg = `+${l.yang} Yang`;
     for (const it of l.items) msg += ` · ${it.name} x${it.count}`;
     addChat({ ch: 'sys', from: 'Ganimet', text: msg });
+    if (l.items.length) refreshInv().catch(() => {});
   });
   gameConn.on('levelUp', d => {
     world.levelBurst(d.id);
@@ -108,6 +129,30 @@ function wireGameEvents() {
     $('death').classList.remove('hidden');
   });
   gameConn.on('notice', n => notice(n.text));
+  gameConn.on('questProgress', q => {
+    if (quest && quest.code === q.code) {
+      quest.progress = q.progress;
+      renderQuestTrack();
+    }
+  });
+  gameConn.on('questDone', d => {
+    let reward = `+${d.rewardYang} Yang · +${d.rewardXp} XP`;
+    if (d.rewardItem) reward += ` · ${d.rewardItem} x${d.rewardItemCount}`;
+    if (d.rewardSp) reward += ` · ${d.rewardSp} skill puanı`;
+    showStory(`${d.title} — TAMAMLANDI`, d.story, reward, () => {
+      if (d.next) {
+        setQuest({ code: d.next.code, title: d.next.title, story: d.next.story,
+                   progress: 0, target: d.next.target });
+        showStory(d.next.title, d.next.story);
+      } else {
+        quest = null;
+        $('quest-track').classList.add('hidden');
+        notice('🏆 Destan tamamlandı! Yeni maceralar yolda...');
+      }
+    });
+    refreshInv().catch(() => {});
+  });
+  gameConn.on('skillFx', f => world.skillFx(f.code, f.x, f.z, f.targets));
   gameConn.on('playerLeft', () => {});   // anlık görüntü zaten temizler
 }
 
@@ -305,12 +350,20 @@ async function refreshInv() {
       div.addEventListener('mouseenter', e => showTip(it, e));
       div.addEventListener('mouseleave', hideTip);
       div.addEventListener('dblclick', async () => {
-        if (it.type !== 'silah') return;
         hideTip();
-        const r = await gameConn.invoke('Equip', it.id);
-        if (r.error) notice(r.error);
-        else notice(`⚔ ${r.name} kuşanıldı (+${r.bonus} saldırı)`);
-        await refreshInv();
+        if (it.type === 'silah') {
+          const r = await gameConn.invoke('Equip', it.id);
+          if (r.error) notice(r.error);
+          else notice(`⚔ ${r.name} kuşanıldı (+${r.bonus} saldırı)`);
+          await refreshInv();
+        } else if (it.type === 'iksir') {
+          const r = await gameConn.invoke('UseItem', it.id);
+          if (r.error) notice(r.error);
+          else notice(`${it.name} içildi`);
+          await refreshInv();
+        } else if (it.type === 'parsomen') {
+          openTeleport(true);
+        }
       });
     }
     div.addEventListener('click', async () => {
@@ -345,6 +398,7 @@ async function refreshInv() {
     await refreshInv();
   };
   $('inv-yang-val').textContent = (stats?.yang ?? 0).toLocaleString('tr');
+  updatePotCounts();
 }
 
 function showTip(it, e) {
@@ -402,6 +456,191 @@ setInterval(() => {
   }
 }, 300);
 
+/* ---------------- skill çubuğu + kullanım ---------------- */
+const qsCd = {};   // code -> hazır olacağı zaman (ms)
+
+function renderQuickbar() {
+  const learned = cfg.skills.filter(sk => mySkills[sk.code]);
+  for (let i = 1; i <= 4; i++) {
+    const el = $(`qs-${i}`);
+    const sk = learned[i - 1];
+    el.innerHTML = `<span class="qk">${i}</span>` + (sk ? sk.icon : '');
+    el.title = sk ? `${sk.name} (derece ${mySkills[sk.code]})` : 'Skill öğren (K)';
+    el.classList.toggle('ready', !!sk);
+    el.dataset.skill = sk ? sk.code : '';
+    el.onclick = sk ? () => castSkill(sk.code) : () => toggleSkillWin();
+  }
+  $('qs-5').onclick = () => usePotion('hp');
+  $('qs-6').onclick = () => usePotion('mp');
+}
+
+async function castSkill(code) {
+  if (qsCd[code] && Date.now() < qsCd[code]) return;
+  const r = await gameConn.invoke('CastSkill', code, targetMobId);
+  if (r.error) { notice(r.error); return; }
+  qsCd[code] = Date.now() + r.cooldown * 1000;
+  // cooldown göstergesi
+  const idx = cfg.skills.filter(sk => mySkills[sk.code]).findIndex(sk => sk.code === code);
+  const el = $(`qs-${idx + 1}`);
+  if (!el) return;
+  const ov = document.createElement('div');
+  ov.className = 'cdov';
+  el.appendChild(ov);
+  const tick = () => {
+    const left = (qsCd[code] - Date.now()) / 1000;
+    if (left <= 0) { ov.remove(); return; }
+    ov.textContent = left.toFixed(0);
+    requestAnimationFrame(tick);
+  };
+  tick();
+}
+
+/* ---------------- iksirler ---------------- */
+function updatePotCounts() {
+  const items = invData?.items || [];
+  const cnt = kind => items
+    .filter(i => i.type === 'iksir' && (kind === 'hp' ? i.healHp > 0 : i.healMp > 0))
+    .reduce((a, i) => a + i.count, 0);
+  $('qc-5').textContent = cnt('hp');
+  $('qc-6').textContent = cnt('mp');
+}
+
+async function usePotion(kind) {
+  const items = (invData?.items || [])
+    .filter(i => i.type === 'iksir' && (kind === 'hp' ? i.healHp > 0 : i.healMp > 0))
+    .sort((a, b) => (kind === 'hp' ? a.healHp - b.healHp : a.healMp - b.healMp));
+  if (!items.length) { notice(kind === 'hp' ? 'Can iksirin yok!' : 'Mana iksirin yok!'); return; }
+  const r = await gameConn.invoke('UseItem', items[0].id);
+  if (r.error) { notice(r.error); await refreshInv(); return; }
+  notice(`${items[0].name} içildi ${kind === 'hp' ? '❤️' : '💙'}`);
+  await refreshInv();
+}
+
+/* ---------------- skill penceresi (K) ---------------- */
+function toggleSkillWin() {
+  const w = $('skill-win');
+  if (!w.classList.contains('hidden')) { w.classList.add('hidden'); return; }
+  renderSkillWin();
+  w.classList.remove('hidden');
+}
+function renderSkillWin() {
+  const body = $('skill-body');
+  body.innerHTML = '';
+  for (const sk of cfg.skills) {
+    const lvl = mySkills[sk.code] || 0;
+    const canLearn = !lvl && (stats?.level ?? 1) >= sk.reqLevel && (stats?.skillPoints ?? 0) > 0;
+    const canUp = lvl > 0 && lvl < 10 && (stats?.skillPoints ?? 0) > 0;
+    const btn = lvl === 0
+      ? `<button data-learn="${sk.code}" ${canLearn ? '' : 'disabled'}>ÖĞREN</button>`
+      : `<button data-up="${sk.code}" ${canUp ? '' : 'disabled'}>YÜKSELT</button>`;
+    body.insertAdjacentHTML('beforeend', `
+      <div class="sk-row">
+        <span class="sk-ic">${sk.icon}</span>
+        <span class="sk-mid">
+          <div class="sk-name">${sk.name} ${lvl ? `<span class="sk-lvl">D${lvl}</span>` : ''}</div>
+          <div class="sk-req">Seviye ${sk.reqLevel} · ${sk.mana} MP · ${sk.cooldown}sn bekleme</div>
+          <div class="sk-desc">${sk.desc}</div>
+        </span>${btn}</div>`);
+  }
+  body.querySelectorAll('[data-learn]').forEach(b => b.onclick = async () => {
+    const r = await gameConn.invoke('LearnSkill', b.dataset.learn);
+    if (r.error) notice(r.error);
+    else { notice(`📕 ${r.name} öğrenildi!`); mySkills[b.dataset.learn] = 1; renderQuickbar(); }
+    renderSkillWin();
+  });
+  body.querySelectorAll('[data-up]').forEach(b => b.onclick = async () => {
+    const r = await gameConn.invoke('UpgradeSkill', b.dataset.up);
+    if (r.error) notice(r.error);
+    else { mySkills[b.dataset.up] = r.level; notice(`Skill derecesi: ${r.level}`); renderQuickbar(); }
+    renderSkillWin();
+  });
+}
+
+/* ---------------- ışınlanma (portal / parşömen) ---------------- */
+function openTeleport(viaScroll) {
+  const body = $('tp-body');
+  body.innerHTML = viaScroll
+    ? '<div style="font-size:11px;color:#b9a988;margin-bottom:6px">📜 Parşömen kullanılıyor — nereye gidersen git bir parşömen harcanır.</div>' : '';
+  for (const m of cfg.maps) {
+    const here = m.id === currentMapId;
+    const ok = !here && (stats?.level ?? 1) >= m.reqLevel;
+    body.insertAdjacentHTML('beforeend', `
+      <div class="tp-row">
+        <span class="tp-mid">
+          <div class="tp-name">${m.name}${here ? ' (buradasın)' : ''}</div>
+          <div class="tp-desc">${m.desc}</div>
+          <div class="tp-req">Seviye ${m.reqLevel}+</div>
+        </span>
+        <button data-tp="${m.id}" ${ok ? '' : 'disabled'}>IŞINLAN</button>
+      </div>`);
+  }
+  body.querySelectorAll('[data-tp]').forEach(b => b.onclick = () => doTeleport(b.dataset.tp, viaScroll));
+  $('tp-win').classList.remove('hidden');
+}
+
+async function doTeleport(mapId, viaScroll) {
+  const r = await gameConn.invoke('Teleport', mapId, viaScroll);
+  if (r.error) { notice(r.error); return; }
+  $('tp-win').classList.add('hidden');
+  currentMapId = r.mapId;
+  targetMobId = null;
+  hideTarget();
+  const mapDef = cfg.maps.find(m => m.id === r.mapId);
+  world.clearEntities();
+  world.setMap(mapDef);
+  world.applySnapshot(r.world);
+  $('minimap-zone').textContent = r.mapName;
+  notice(`🌀 ${r.mapName}'ne ışınlandın`);
+  await refreshInv().catch(() => {});
+}
+
+/* ---------------- görev takipçisi + günlük + hikaye ---------------- */
+function setQuest(q) {
+  quest = q;
+  renderQuestTrack();
+}
+function renderQuestTrack() {
+  if (!quest) return;
+  $('quest-track').classList.remove('hidden');
+  $('qt-title').textContent = `📜 ${quest.title}`;
+  $('qt-bar').style.width = `${Math.min(100, (quest.progress / quest.target) * 100)}%`;
+  $('qt-text').textContent = `${quest.progress} / ${quest.target}`;
+}
+function toggleQuestWin() {
+  const w = $('quest-win');
+  if (!w.classList.contains('hidden')) { w.classList.add('hidden'); return; }
+  const body = $('quest-body');
+  body.innerHTML = '';
+  const curIdx = quest ? cfg.quests.findIndex(q => q.code === quest.code) : cfg.quests.length;
+  cfg.quests.forEach((q, i) => {
+    const cls = i < curIdx ? 'qw-done' : i === curIdx ? 'qw-cur' : 'qw-lock';
+    const state = i < curIdx ? '✓' : i === curIdx ? `${quest?.progress ?? 0}/${q.targetCount}` : '🔒';
+    body.insertAdjacentHTML('beforeend', `
+      <div class="qw-row ${cls}">
+        <div class="qw-t">${i + 1}. ${q.title} <span style="float:right">${state}</span></div>
+        ${i <= curIdx ? `<div class="qw-s">${q.storyStart}</div>` : ''}
+      </div>`);
+  });
+  w.classList.remove('hidden');
+}
+
+let storyQueue = null;
+function showStory(title, text, reward, onNext) {
+  $('story-title').textContent = title;
+  $('story-text').textContent = text;
+  $('story-reward').textContent = reward || '';
+  storyQueue = onNext || null;
+  $('story-win').classList.remove('hidden');
+}
+$('story-next').addEventListener('click', () => {
+  $('story-win').classList.add('hidden');
+  const cb = storyQueue;
+  storyQueue = null;
+  cb && cb();
+});
+$('btn-skill').addEventListener('click', () => toggleSkillWin());
+$('btn-quest').addEventListener('click', () => toggleQuestWin());
+
 /* ---------------- klavye ---------------- */
 addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT') return;
@@ -409,6 +648,15 @@ addEventListener('keydown', e => {
   const k = e.key.toLocaleLowerCase('tr');
   if (k === 'i' || k === 'ı') { toggleInv(); return; }
   if (k === 'c' || k === 'ç') { toggleChar(); return; }
+  if (k === 'k') { toggleSkillWin(); return; }
+  if (k === 'j') { toggleQuestWin(); return; }
+  if (e.key >= '1' && e.key <= '4') {
+    const el = $(`qs-${e.key}`);
+    if (el?.dataset.skill) castSkill(el.dataset.skill);
+    return;
+  }
+  if (e.key === '5') { usePotion('hp'); return; }
+  if (e.key === '6') { usePotion('mp'); return; }
   if (e.key === 'Escape' && pickedItem) {
     pickedItem = null; ghost.classList.add('hidden'); refreshInv(); return;
   }
@@ -420,6 +668,9 @@ addEventListener('keydown', e => {
   }
   if (e.key === 'Enter') $('chat-in').focus();
 });
+
+// tarayıcı sağ tık menüsünü kapat (sağ tık = kamera çevirme)
+addEventListener('contextmenu', e => e.preventDefault());
 
 // test kancası
 window.__mmo = () => ({ world, gameConn, chatConn, selfId, stats, cfg });

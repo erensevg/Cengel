@@ -10,6 +10,19 @@ const MOB_STYLE = {
   metin_ates:   { color: 0xff8a4c, emissive: 0xd84b12, shape: 'metin', h: 3.8 },
 };
 
+// Harita temaları: arazi paleti, sis, bitki örtüsü
+const THEMES = {
+  vadi:  { c: [0x3d6b35, 0x5d8a3e, 0x8a7a4e], fog: 0x10142a, fogD: 0.011,
+           leaf: 0x2f5d2a, trunk: 0x5a4128, trees: 150, rocks: 45,
+           sky: ['#2c3f6b', '#151c38', '#0a0c14'] },
+  col:   { c: [0x8a6a34, 0xb08d4a, 0xc9a55e], fog: 0x2a1a0c, fogD: 0.013,
+           leaf: 0x4a7a3a, trunk: 0x6a8a4a, trees: 55, rocks: 90,
+           sky: ['#7a4a24', '#3a2210', '#120a05'] },
+  zirve: { c: [0xaebbd0, 0xcfdae8, 0xeef4fa], fog: 0x27324a, fogD: 0.015,
+           leaf: 0x4a6a5a, trunk: 0x3a3f4a, trees: 170, rocks: 60,
+           sky: ['#4a5f8b', '#222c48', '#0c1018'] },
+};
+
 // Arazi yüksekliği — sunucu düz düzlem varsayar; görsel amaçlı hafif dalga.
 export function groundH(x, z) {
   return Math.sin(x * 0.045) * Math.cos(z * 0.06) * 1.1 +
@@ -95,8 +108,11 @@ export class World {
     sc.left = sc.bottom = -40; sc.right = sc.top = 40; sc.far = 160;
     scene.add(sun, sun.target);
 
-    this._buildTerrain();
-    this._buildProps();
+    this.mapMeshes = [];   // tema değişince sökülecekler
+    this.portalPos = null;
+    this._buildTerrain(THEMES.vadi);
+    this._buildProps(THEMES.vadi);
+    this._buildMarkers();
 
     // ---- girdi: sürükle = kamera, tık = etkileşim ----
     const el = renderer.domElement;
@@ -138,14 +154,14 @@ export class World {
     loop();
   }
 
-  _buildTerrain() {
+  _buildTerrain(th) {
     const size = this.cfg.worldHalf * 2 + 40;
     const geo = new THREE.PlaneGeometry(size, size, 96, 96);
     geo.rotateX(-Math.PI / 2);
     const pos = geo.attributes.position;
     const colors = new Float32Array(pos.count * 3);
-    const c1 = new THREE.Color(0x3d6b35), c2 = new THREE.Color(0x5d8a3e),
-          c3 = new THREE.Color(0x8a7a4e), tmp = new THREE.Color();
+    const c1 = new THREE.Color(th.c[0]), c2 = new THREE.Color(th.c[1]),
+          c3 = new THREE.Color(th.c[2]), tmp = new THREE.Color();
     for (let i = 0; i < pos.count; i++) {
       const x = pos.getX(i), z = pos.getZ(i);
       const h = groundH(x, z);
@@ -162,19 +178,34 @@ export class World {
       new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95 }));
     ground.receiveShadow = true;
     this.scene.add(ground);
+    this.mapMeshes.push(ground);
+    this.scene.fog.color.setHex(th.fog);
+    this.scene.fog.density = th.fogD;
+    {
+      const c = document.createElement('canvas');
+      c.width = 2; c.height = 256;
+      const g = c.getContext('2d');
+      const grd = g.createLinearGradient(0, 0, 0, 256);
+      grd.addColorStop(0, th.sky[0]); grd.addColorStop(.55, th.sky[1]); grd.addColorStop(1, th.sky[2]);
+      g.fillStyle = grd; g.fillRect(0, 0, 2, 256);
+      const tex = new THREE.CanvasTexture(c);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      tex.mapping = THREE.EquirectangularReflectionMapping;
+      this.scene.background = tex;
+    }
   }
 
-  _buildProps() {
+  _buildProps(th) {
     // ağaçlar + kayalar (deterministik dağılım, spawn noktası çevresi boş)
     const rng = (() => { let s = 1337; return () => (s = s * 16807 % 2147483647) / 2147483647; })();
+    const nTree = th.trees, nRock = th.rocks;
     const H = this.cfg.worldHalf;
     const trunkG = new THREE.CylinderGeometry(0.16, 0.24, 1.4, 6);
     const leafG = new THREE.ConeGeometry(1.15, 2.6, 7);
-    const trunkM = new THREE.MeshStandardMaterial({ color: 0x5a4128, roughness: 1 });
-    const leafM = new THREE.MeshStandardMaterial({ color: 0x2f5d2a, roughness: 0.9 });
+    const trunkM = new THREE.MeshStandardMaterial({ color: th.trunk, roughness: 1 });
+    const leafM = new THREE.MeshStandardMaterial({ color: th.leaf, roughness: 0.9 });
     const rockG = new THREE.DodecahedronGeometry(0.7);
     const rockM = new THREE.MeshStandardMaterial({ color: 0x6d6d78, roughness: 0.9 });
-    const nTree = 150, nRock = 45;
     const trunks = new THREE.InstancedMesh(trunkG, trunkM, nTree);
     const leaves = new THREE.InstancedMesh(leafG, leafM, nTree);
     const rocks = new THREE.InstancedMesh(rockG, rockM, nRock);
@@ -200,7 +231,10 @@ export class World {
       d.updateMatrix(); rocks.setMatrixAt(i, d.matrix);
     }
     this.scene.add(trunks, leaves, rocks);
+    this.mapMeshes.push(trunks, leaves, rocks);
+  }
 
+  _buildMarkers() {
     // hedef seçme halkası + yürüme işareti
     this.selRing = new THREE.Mesh(
       new THREE.TorusGeometry(1.1, 0.05, 8, 32).rotateX(Math.PI / 2),
@@ -212,6 +246,81 @@ export class World {
       new THREE.MeshBasicMaterial({ color: 0x6fe36f, transparent: true }));
     this.moveMark.visible = false;
     this.scene.add(this.moveMark);
+  }
+
+  /* ---------------- harita değişimi ---------------- */
+  setMap(mapDef) {
+    // eski arazi/bitkileri sök
+    for (const m of this.mapMeshes) {
+      this.scene.remove(m);
+      m.geometry?.dispose?.();
+    }
+    this.mapMeshes = [];
+    if (this.portal) { this.scene.remove(this.portal); this.portal = null; }
+    const th = THEMES[mapDef.theme] || THEMES.vadi;
+    this._buildTerrain(th);
+    this._buildProps(th);
+    // Işınlanma Kapısı: dönen parlak halka
+    const g = new THREE.Group();
+    const ring = new THREE.Mesh(
+      new THREE.TorusGeometry(1.6, 0.16, 10, 40),
+      new THREE.MeshStandardMaterial({ color: 0x63d8ff, emissive: 0x2a8fd8,
+        emissiveIntensity: 1.2, metalness: .6, roughness: .3 }));
+    ring.position.y = 2.2;
+    const base = new THREE.Mesh(
+      new THREE.CylinderGeometry(1.4, 1.8, 0.5, 8),
+      new THREE.MeshStandardMaterial({ color: 0x2c3350, roughness: .6 }));
+    base.position.y = 0.25;
+    ring.userData.portal = base.userData.portal = true;
+    g.add(ring, base);
+    g.position.set(mapDef.portalX, groundH(mapDef.portalX, mapDef.portalZ), mapDef.portalZ);
+    this.portal = g;
+    this.portalRing = ring;
+    this.scene.add(g);
+  }
+
+  clearEntities() {
+    for (const [, e] of this.players) this.scene.remove(e.group);
+    for (const [, e] of this.mobs) this.scene.remove(e.group);
+    this.players.clear();
+    this.mobs.clear();
+    this.select(null);
+  }
+
+  /* ---------------- skill efektleri ---------------- */
+  skillFx(code, x, z, targetIds) {
+    const colors = { guclu_vurus: 0xff5b4d, kasirga: 0x63d8ff, savas_cigligi: 0xffd75c };
+    const col = colors[code] || 0xffffff;
+    // yayılan halka
+    const ring = new THREE.Mesh(
+      new THREE.TorusGeometry(0.8, 0.09, 8, 36).rotateX(Math.PI / 2),
+      new THREE.MeshBasicMaterial({ color: col, transparent: true }));
+    ring.position.set(x, groundH(x, z) + 0.3, z);
+    this.scene.add(ring);
+    this.effects.push({ obj: ring, ringGrow: code === 'kasirga' ? 5.5 : 2.2, life: .6, t: 0 });
+    // hedeflerde patlama
+    for (const id of targetIds || []) {
+      const e = this.mobs.get(id);
+      if (e) this.burst(e.x, e.z, col);
+    }
+    if (code === 'savas_cigligi') this.burst(x, z, col);
+  }
+
+  burst(x, z, color) {
+    const n = 26, pos = new Float32Array(n * 3), vel = [];
+    for (let i = 0; i < n; i++) {
+      pos[i*3] = x; pos[i*3+1] = groundH(x, z) + 1; pos[i*3+2] = z;
+      const a = Math.random() * 6.28;
+      vel.push([Math.cos(a) * (1 + Math.random() * 2.4), 2 + Math.random() * 3.4,
+                Math.sin(a) * (1 + Math.random() * 2.4)]);
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    const pts = new THREE.Points(geo, new THREE.PointsMaterial({
+      color, size: 0.2, transparent: true, depthWrite: false,
+      blending: THREE.AdditiveBlending }));
+    this.scene.add(pts);
+    this.effects.push({ obj: pts, particles: vel, life: .9, t: 0 });
   }
 
   /* ---------------- varlıklar ---------------- */
@@ -465,6 +574,10 @@ export class World {
   _click(cx, cy) {
     const v = new THREE.Vector2((cx / innerWidth) * 2 - 1, -(cy / innerHeight) * 2 + 1);
     this.ray.setFromCamera(v, this.camera);
+    if (this.portal) {
+      const hitPortal = this.ray.intersectObject(this.portal, true)[0];
+      if (hitPortal) { this.cb.onPortalClick(); return; }
+    }
     const mobMeshes = [...this.mobs.values()].filter(m => !m.dying).map(m => m.body);
     const hitMob = this.ray.intersectObjects(mobMeshes, false)[0];
     if (hitMob) { this.cb.onMobClick(hitMob.object.userData.mobId); return; }
@@ -554,6 +667,10 @@ export class World {
         }
         fx.obj.geometry.attributes.position.needsUpdate = true;
         fx.obj.material.opacity = 1 - fx.t / fx.life;
+      } else if (fx.ringGrow) {
+        const k = fx.t / fx.life;
+        fx.obj.scale.setScalar(1 + k * fx.ringGrow);
+        fx.obj.material.opacity = 1 - k;
       } else {
         fx.obj.position.y += fx.vy * dt;
         fx.obj.material.opacity = 1 - (fx.t / fx.life) ** 2;
@@ -561,6 +678,11 @@ export class World {
       if (fx.t >= fx.life) { this.scene.remove(fx.obj); fx.dead = true; }
     }
     this.effects = this.effects.filter(f => !f.dead);
+
+    if (this.portalRing) {
+      this.portalRing.rotation.y = t * 1.2;
+      this.portalRing.material.emissiveIntensity = 1 + Math.sin(t * 3) * 0.5;
+    }
 
     // kamera: kendi karakterini takip
     const me = this.players.get(this.selfId);

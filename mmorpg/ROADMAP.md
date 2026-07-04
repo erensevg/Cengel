@@ -37,15 +37,33 @@ Test kancası: tarayıcı konsolunda `window.__mmo()`.
 - 2 oyunculu Playwright uçtan uca testi geçti (hareket senkronu, dövüş, XP,
   sohbet, arkadaşlık, fısıltı)
 
+## YENİ YAPILDI ✅ (tam yapı güncellemesi)
+
+- MP/mana + yenilenme; can/mana iksirleri (droplar + yeni karaktere başlangıç paketi),
+  UseItem; 5/6 tuşları hızlı iksir
+- Skill sistemi: seviye şartı + skill puanı (level başına 1), öğren/yükselt (maks 10),
+  Güçlü Vuruş / Kasırga Kesiği (AoE) / Savaş Çığlığı (buff); 1-4 tuşları, cooldown,
+  skillFx yayını; K penceresi
+- Çoklu harita: Doğu Vadisi / Kızıl Çöl (sv5) / Buz Zirvesi (sv10) — harita başına
+  spawn + tema (arazi/sis/bitki); SignalR grubu map:{id}
+- Işınlanma: spawn yanındaki portal (tıkla → pencere) + Işınlanma Parşömeni (uzaktan);
+  seviye şartı; Teleport hub
+- Dinamik hikaye: 7 aşamalı "Ejder Tanrısı'nın Gölgesi" görev zinciri (Usta Chen
+  anlatısı), görev takipçisi + günlük (J) + hikaye paneli; kill/metin/level/map
+  olaylarıyla ilerler; ödüller (yang/XP/item/skill puanı)
+- Dinamik dünya olayları: ~3dk'da bir kadim metin ya da canavar dalgası duyurusu
+- Sağ tık menüsü kapalı (sağ tık = kamera)
+
+Bilinen kısıt: görev İLERLEMESİ (progress) yeniden girişte sıfırlanır (yalnızca
+tamamlanan görevler DB'de); CharacterQuest.Progress alanına periyodik yazım eklenebilir.
+
 ## YAPILACAK — öncelik sırasıyla 🔜
 
 1. **Karakter sınıfları** (Savaşçı/Ninja/Sura/Şaman): `Character`'a `ClassType`
    ekle; `GameConfig`'e sınıf başına stat/katsayı; istemcide sınıf seçim ekranı
    (giriş sonrası, karakter yoksa). Görsel farklılık için `world.js/_makePlayer`
    renk/silüet varyantları.
-2. **Skiller**: `GameHub.CastSkill(skillId)` + cooldown/mana; `WorldService`'te
-   alan hasarı (AoE) hesabı; istemcide skill çubuğu (1-4 tuşları) + efektler.
-   MP alanı PlayerState/Character'da yok — ekle (MaxMp formülü MaxHp gibi).
+2. **Skiller**: ✅ (üstte). Kalan: sınıf bazlı skill setleri, skill kitabı dropları.
 3. **Ekipman**: ✅ silahlar eklendi (drop + Equip/Unequip + hasar bonusu +
    ızgara envanter/taşıma/tooltip). Kalan: zırh/kask/kalkan slotları, savunma
    statı, item seviye şartı, yükseltme (+1..+9).
@@ -55,9 +73,8 @@ Test kancası: tarayıcı konsolunda `window.__mmo()`.
    (yang karşılığı), drop satma.
 6. **PvP**: düello isteği → kabul → `Attack`'in oyuncu hedefi desteklemesi
    (WorldService'te `HitMob` benzeri `HitPlayer`).
-7. **Harita genişletme/instancing**: `WorldState` tek harita; `MapId` zaten
-   Character'da düşünüldü ama kullanılmıyor — bölge başına ayrı `WorldState`
-   + SignalR grubu (`world:{mapId}`) ile çoklu harita.
+7. **Harita genişletme**: ✅ 3 harita + ışınlanma var. Kalan: zindan/instance
+   (grup başına kopya MapState), boss odaları.
 8. **Ölçekleme**: GameService şu an tek süreç (state bellekte). Yatayda
    ölçeklemek için: yapışkan oturum + harita başına süreç, ya da state'i
    Redis'e taşı; SignalR için Redis backplane (`AddStackExchangeRedis`).

@@ -34,6 +34,7 @@
   <div id="player-frame">
     <div id="pf-name">—</div>
     <div class="bar hp"><div id="bar-hp"></div><span id="txt-hp"></span></div>
+    <div class="bar mp"><div id="bar-mp"></div><span id="txt-mp"></span></div>
     <div class="bar xp"><div id="bar-xp"></div><span id="txt-xp"></span></div>
     <div id="pf-sub"><span id="pf-level">Sv 1</span> · <span id="pf-yang">0 Yang</span></div>
   </div>
@@ -48,12 +49,19 @@
   <div id="minimap-wrap">
     <canvas id="minimap" width="150" height="150"></canvas>
     <div id="minimap-zone">Doğu Vadisi</div>
+    <div id="quest-track" class="hidden">
+      <div id="qt-title">—</div>
+      <div id="qt-bar-wrap"><div id="qt-bar"></div></div>
+      <div id="qt-text">—</div>
+    </div>
   </div>
 
   <div id="side-btns">
     <button id="btn-friends" title="Arkadaşlar">👥</button>
     <button id="btn-inv" title="Envanter (I)">🎒</button>
     <button id="btn-char" title="Karakter (C)">🧝</button>
+    <button id="btn-skill" title="Skiller (K)">📕</button>
+    <button id="btn-quest" title="Görev Günlüğü (J)">📜</button>
     <button id="btn-board" title="Sıralama">🏆</button>
   </div>
 
@@ -74,15 +82,46 @@
     <div id="char-body"></div>
   </div>
 
+  <!-- Skill penceresi -->
+  <div id="skill-win" class="m2-win hidden">
+    <div class="m2-head">SKİLLER <span id="sk-points" class="sk-pts">0 puan</span>
+      <button class="m2-close" data-close="skill-win">✕</button></div>
+    <div id="skill-body"></div>
+  </div>
+
+  <!-- Işınlanma penceresi -->
+  <div id="tp-win" class="m2-win hidden">
+    <div class="m2-head">IŞINLANMA KAPISI <button class="m2-close" data-close="tp-win">✕</button></div>
+    <div id="tp-body"></div>
+  </div>
+
+  <!-- Görev günlüğü -->
+  <div id="quest-win" class="m2-win hidden">
+    <div class="m2-head">GÖREV GÜNLÜĞÜ <button class="m2-close" data-close="quest-win">✕</button></div>
+    <div id="quest-body"></div>
+  </div>
+
+  <!-- Hikaye paneli (Usta Chen) -->
+  <div id="story-win" class="hidden">
+    <div id="story-box">
+      <div id="story-title">—</div>
+      <div id="story-text">—</div>
+      <div id="story-reward"></div>
+      <button id="story-next">DEVAM ➤</button>
+    </div>
+  </div>
+
   <div id="item-tip" class="hidden"></div>
 
   <!-- Alt HUD: hızlı yuvalar + XP şeridi -->
   <div id="bottom-hud">
     <div id="quickslots">
-      <div class="qslot" title="Skill sistemi yakında">1</div>
-      <div class="qslot" title="Skill sistemi yakında">2</div>
-      <div class="qslot" title="Skill sistemi yakında">3</div>
-      <div class="qslot" title="Skill sistemi yakında">4</div>
+      <div class="qslot" id="qs-1" data-key="1"><span class="qk">1</span></div>
+      <div class="qslot" id="qs-2" data-key="2"><span class="qk">2</span></div>
+      <div class="qslot" id="qs-3" data-key="3"><span class="qk">3</span></div>
+      <div class="qslot" id="qs-4" data-key="4"><span class="qk">4</span></div>
+      <div class="qslot pot" id="qs-5" data-key="5" title="Can iksiri iç (5)"><span class="qk">5</span>🧪<span class="qcnt" id="qc-5">0</span></div>
+      <div class="qslot pot" id="qs-6" data-key="6" title="Mana iksiri iç (6)"><span class="qk">6</span>💧<span class="qcnt" id="qc-6">0</span></div>
     </div>
     <div id="xp-strip-wrap" title="XP"><div id="xp-strip"></div></div>
   </div>
