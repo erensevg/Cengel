@@ -43,6 +43,12 @@ public class GameHub(WorldState world, WorldService worldService, GameDb db) : H
             MaxHp = GameConfig.MaxHpFor(ch.Level),
             Hp = GameConfig.MaxHpFor(ch.Level),
         };
+        if (ch.EquippedItemId is { } eqId)
+        {
+            var eq = await db.Items.FirstOrDefaultAsync(i => i.Id == eqId);
+            var eqDef = eq is null ? null : GameConfig.Items.FirstOrDefault(d => d.Code == eq.ItemCode);
+            p.WeaponBonus = eqDef?.Bonus ?? 0;
+        }
         world.Players[Context.ConnectionId] = p;
         await Groups.AddToGroupAsync(Context.ConnectionId, "world");
         await Clients.Group("world").SendAsync("notice",
@@ -99,15 +105,68 @@ public class GameHub(WorldState world, WorldService worldService, GameDb db) : H
     public async Task<object> GetInventory()
     {
         var p = world.Players.GetValueOrDefault(Context.ConnectionId);
-        if (p is null) return Array.Empty<object>();
+        if (p is null) return new { items = Array.Empty<object>(), equippedId = (Guid?)null };
+        var ch = await db.Characters.FindAsync(p.CharacterId);
         var items = await db.Items.Where(i => i.CharacterId == p.CharacterId).ToListAsync();
-        return items.Select(i => new
+        return new
         {
-            code = i.ItemCode,
-            name = GameConfig.Items.FirstOrDefault(d => d.Code == i.ItemCode)?.Name ?? i.ItemCode,
-            icon = GameConfig.Items.FirstOrDefault(d => d.Code == i.ItemCode)?.Icon ?? "❔",
-            count = i.Count,
-        }).ToList<object>();
+            equippedId = ch?.EquippedItemId,
+            items = items.Select(i =>
+            {
+                var def = GameConfig.Items.FirstOrDefault(d => d.Code == i.ItemCode);
+                return new
+                {
+                    id = i.Id, code = i.ItemCode, slot = i.SlotIndex, count = i.Count,
+                    name = def?.Name ?? i.ItemCode, icon = def?.Icon ?? "❔",
+                    desc = def?.Desc ?? "", type = def?.Type ?? "malzeme",
+                    bonus = def?.Bonus ?? 0,
+                };
+            }).ToList(),
+        };
+    }
+
+    /// <summary>Çanta ızgarasında taşı; hedef doluysa yer değiştir.</summary>
+    public async Task MoveItem(Guid itemId, int slot)
+    {
+        if (slot is < 0 or > 44) return;
+        var p = world.Players.GetValueOrDefault(Context.ConnectionId);
+        if (p is null) return;
+        var item = await db.Items.FirstOrDefaultAsync(
+            i => i.Id == itemId && i.CharacterId == p.CharacterId);
+        if (item is null) return;
+        var other = await db.Items.FirstOrDefaultAsync(
+            i => i.CharacterId == p.CharacterId && i.SlotIndex == slot);
+        if (other is not null) other.SlotIndex = item.SlotIndex;
+        item.SlotIndex = slot;
+        await db.SaveChangesAsync();
+    }
+
+    public async Task<object> Equip(Guid itemId)
+    {
+        var p = world.Players.GetValueOrDefault(Context.ConnectionId);
+        if (p is null) return new { error = "oyunda değilsin" };
+        var item = await db.Items.FirstOrDefaultAsync(
+            i => i.Id == itemId && i.CharacterId == p.CharacterId);
+        var def = item is null ? null : GameConfig.Items.FirstOrDefault(d => d.Code == item.ItemCode);
+        if (def is null || def.Type != "silah") return new { error = "Bu eşya kuşanılamaz." };
+        var ch = await db.Characters.FindAsync(p.CharacterId);
+        ch!.EquippedItemId = item!.Id;
+        await db.SaveChangesAsync();
+        p.WeaponBonus = def.Bonus;
+        worldService.SendStats(p);
+        return new { ok = true, name = def.Name, bonus = def.Bonus };
+    }
+
+    public async Task Unequip()
+    {
+        var p = world.Players.GetValueOrDefault(Context.ConnectionId);
+        if (p is null) return;
+        var ch = await db.Characters.FindAsync(p.CharacterId);
+        if (ch is null) return;
+        ch.EquippedItemId = null;
+        await db.SaveChangesAsync();
+        p.WeaponBonus = 0;
+        worldService.SendStats(p);
     }
 
     public override async Task OnDisconnectedAsync(Exception? exception)

@@ -268,16 +268,25 @@ public class WorldService(
         {
             using var scope = scopes.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<GameDb>();
+            var rows = await db.Items.Where(i => i.CharacterId == p.CharacterId).ToListAsync();
+            var usedSlots = rows.Select(r => r.SlotIndex).ToHashSet();
+            int FreeSlot() { for (var s = 0; s < 45; s++) if (usedSlots.Add(s)) return s; return -1; }
             foreach (var (code, count) in drops)
             {
-                var row = await db.Items.FirstOrDefaultAsync(
-                    i => i.CharacterId == p.CharacterId && i.ItemCode == code);
+                var def = GameConfig.Items.First(i => i.Code == code);
+                var row = def.Type == "malzeme"
+                    ? rows.FirstOrDefault(i => i.ItemCode == code)
+                    : null;   // silahlar yığınlanmaz, her biri ayrı satır
                 if (row is null)
-                    db.Items.Add(new InventoryItem
+                {
+                    row = new InventoryItem
                     {
                         Id = Guid.NewGuid(), CharacterId = p.CharacterId,
-                        ItemCode = code, Count = count,
-                    });
+                        ItemCode = code, Count = count, SlotIndex = FreeSlot(),
+                    };
+                    db.Items.Add(row);
+                    rows.Add(row);
+                }
                 else row.Count += count;
             }
             await db.SaveChangesAsync();

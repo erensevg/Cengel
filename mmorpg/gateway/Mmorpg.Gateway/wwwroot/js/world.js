@@ -216,29 +216,70 @@ export class World {
 
   /* ---------------- varlıklar ---------------- */
   _makePlayer(p) {
+    // Metin2 esintili savaşçı: zırh + omuzluklar + kuşak + büyük kılıç
     const g = new THREE.Group();
     const self = p.id === this.selfId;
-    const armor = new THREE.MeshStandardMaterial({
-      color: self ? 0xd8b45a : 0x5a7fd8, roughness: 0.55, metalness: 0.35 });
-    const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.42, 0.8, 4, 10), armor);
-    body.position.y = 0.85; body.castShadow = true;
-    const head = new THREE.Mesh(
-      new THREE.SphereGeometry(0.3, 12, 10),
-      new THREE.MeshStandardMaterial({ color: 0xe8c39a, roughness: 0.7 }));
-    head.position.y = 1.75; head.castShadow = true;
-    const sword = new THREE.Mesh(
-      new THREE.BoxGeometry(0.09, 1.15, 0.18),
-      new THREE.MeshStandardMaterial({ color: 0xd8dde8, metalness: 0.85, roughness: 0.25 }));
-    sword.position.set(0.55, 1.0, 0.15);
-    sword.rotation.z = -0.5;
+    const armorC = self ? 0x7d1f1f : 0x2c3e6b;   // kendin: kızıl zırh, diğerleri: çelik mavisi
+    const trimC = self ? 0xe8b84b : 0x9fb4d8;
+    const armor = new THREE.MeshStandardMaterial({ color: armorC, roughness: 0.5, metalness: 0.45 });
+    const trim = new THREE.MeshStandardMaterial({ color: trimC, roughness: 0.35, metalness: 0.7 });
+    const skin = new THREE.MeshStandardMaterial({ color: 0xe8c39a, roughness: 0.7 });
+    const dark = new THREE.MeshStandardMaterial({ color: 0x23262e, roughness: 0.8 });
+
+    const mk = (geo, mat, x, y, z) => {
+      const m = new THREE.Mesh(geo, mat);
+      m.position.set(x, y, z); m.castShadow = true; g.add(m); return m;
+    };
+    // bacaklar (pivotu kalçada — animasyon için grup)
+    const legG = new THREE.BoxGeometry(0.2, 0.62, 0.24);
+    legG.translate(0, -0.31, 0);
+    const legL = mk(legG, dark, -0.16, 0.66, 0);
+    const legR = mk(legG.clone(), dark, 0.16, 0.66, 0);
+    // gövde zırhı + göğüs plakası + kuşak
+    mk(new THREE.BoxGeometry(0.6, 0.62, 0.36), armor, 0, 0.98, 0);
+    mk(new THREE.BoxGeometry(0.46, 0.3, 0.4), trim, 0, 1.12, 0.01);
+    mk(new THREE.BoxGeometry(0.62, 0.1, 0.38), trim, 0, 0.7, 0);
+    // omuzluklar
+    mk(new THREE.SphereGeometry(0.17, 8, 6), trim, -0.4, 1.26, 0);
+    mk(new THREE.SphereGeometry(0.17, 8, 6), trim, 0.4, 1.26, 0);
+    // kollar (pivot omuzda)
+    const armG = new THREE.BoxGeometry(0.15, 0.55, 0.18);
+    armG.translate(0, -0.27, 0);
+    const armL = mk(armG, armor, -0.42, 1.22, 0);
+    // kılıç kolu: grup — savurma animasyonu bunun üstünde
+    const armSw = new THREE.Group();
+    armSw.position.set(0.42, 1.22, 0);
+    const armRm = new THREE.Mesh(armG.clone(), armor);
+    armRm.castShadow = true;
+    armSw.add(armRm);
+    // büyük kılıç (elde)
+    const sw = new THREE.Group();
+    sw.position.set(0, -0.5, 0.05);
+    const blade = new THREE.Mesh(new THREE.BoxGeometry(0.07, 1.35, 0.2),
+      new THREE.MeshStandardMaterial({ color: 0xdfe5f0, metalness: 0.9, roughness: 0.2 }));
+    blade.position.y = 0.85; blade.castShadow = true;
+    const guard = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.06, 0.3), trim.clone());
+    guard.position.y = 0.16;
+    const grip = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.26, 6), dark);
+    sw.add(blade, guard, grip);
+    sw.rotation.x = 0.5;
+    armSw.add(sw);
+    g.add(armSw);
+    // baş + bandana/miğfer
+    mk(new THREE.SphereGeometry(0.24, 12, 10), skin, 0, 1.62, 0);
+    mk(new THREE.SphereGeometry(0.255, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.55), armor, 0, 1.66, 0);
+    // topuz saç (metin2 savaşçısı)
+    mk(new THREE.SphereGeometry(0.09, 6, 5), dark, 0, 1.92, -0.05);
+
     const label = makeLabel(p.name, self ? '#ffe9ad' : '#cfe0ff');
-    label.position.y = 2.6;
+    label.position.y = 2.65;
     const hp = makeHpBar();
-    hp.sprite.position.y = 2.25;
-    g.add(body, head, sword, label, hp.sprite);
+    hp.sprite.position.y = 2.3;
+    g.add(label, hp.sprite);
     this.scene.add(g);
-    return { group: g, hp, body, sword, tx: p.x, tz: p.z, x: p.x, z: p.z,
-             moving: false, dead: false, swing: 0 };
+    return { group: g, hp, tx: p.x, tz: p.z, x: p.x, z: p.z,
+             moving: false, dead: false, swing: 0, walk: 0,
+             legL, legR, armL, armSw };
   }
 
   _makeMob(m) {
@@ -257,19 +298,70 @@ export class World {
       g.add(rock2);
     } else {
       const mat = new THREE.MeshStandardMaterial({ color: st.color, roughness: 0.85 });
-      bodyMesh = new THREE.Mesh(new THREE.BoxGeometry(st.w, st.h, st.w * 1.6), mat);
-      bodyMesh.position.y = st.h / 2 + 0.15;
-      const headM = new THREE.Mesh(new THREE.BoxGeometry(st.w * 0.55, st.h * 0.6, st.w * 0.5), mat);
-      headM.position.set(0, st.h * 0.75, st.w * 0.95);
+      const dark = new THREE.MeshStandardMaterial({
+        color: new THREE.Color(st.color).multiplyScalar(0.55), roughness: 0.9 });
+      const legH = m.code === 'kurt' ? 0.44 : 0.3;
+      // gövde
+      bodyMesh = new THREE.Mesh(new THREE.BoxGeometry(st.w, st.h, st.w * 1.7), mat);
+      bodyMesh.position.y = legH + st.h / 2;
+      // baş + türe özgü detaylar
+      const headM = new THREE.Mesh(
+        new THREE.BoxGeometry(st.w * 0.55, st.h * 0.62, st.w * 0.55), mat);
+      headM.position.set(0, legH + st.h * 0.8, st.w * 1.0);
       headM.castShadow = true;
       g.add(headM);
-      // bacaklar
-      const legG = new THREE.BoxGeometry(0.16, 0.34, 0.16);
-      for (const [lx, lz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
-        const leg = new THREE.Mesh(legG, mat);
-        leg.position.set(lx * st.w * 0.32, 0.17, lz * st.w * 0.55);
-        g.add(leg);
+      if (m.code === 'yaban_domuzu') {
+        const snout = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.2, 0.3), dark);
+        snout.position.set(0, legH + st.h * 0.66, st.w * 1.35);
+        const tusk = new THREE.CylinderGeometry(0.03, 0.015, 0.24, 5);
+        for (const s of [-1, 1]) {
+          const t = new THREE.Mesh(tusk, new THREE.MeshStandardMaterial({ color: 0xf0e6c8 }));
+          t.position.set(s * 0.16, legH + st.h * 0.6, st.w * 1.3);
+          t.rotation.x = -0.9;
+          g.add(t);
+        }
+        g.add(snout);
+      } else if (m.code === 'kurt') {
+        const tail = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.14, 0.6), dark);
+        tail.position.set(0, legH + st.h * 0.7, -st.w * 1.05);
+        tail.rotation.x = 0.7;
+        for (const s of [-1, 1]) {   // kulaklar
+          const ear = new THREE.Mesh(new THREE.ConeGeometry(0.09, 0.22, 4), dark);
+          ear.position.set(s * 0.16, legH + st.h * 1.18, st.w * 0.95);
+          g.add(ear);
+        }
+        g.add(tail);
+      } else if (m.code === 'col_akrebi') {
+        // kıskaçlar + kalkık kuyruk
+        for (const s of [-1, 1]) {
+          const claw = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.18, 0.42), dark);
+          claw.position.set(s * st.w * 0.62, legH + 0.12, st.w * 1.0);
+          g.add(claw);
+        }
+        let py = legH + st.h, pz = -st.w * 0.9;
+        for (let i = 0; i < 3; i++) {
+          const seg = new THREE.Mesh(new THREE.SphereGeometry(0.14 - i * 0.02, 6, 5), dark);
+          seg.position.set(0, py += 0.2, pz += 0.12);
+          g.add(seg);
+        }
+      } else if (m.code === 'dag_ayisi') {
+        for (const s of [-1, 1]) {   // yuvarlak kulaklar
+          const ear = new THREE.Mesh(new THREE.SphereGeometry(0.12, 6, 5), dark);
+          ear.position.set(s * 0.2, legH + st.h * 1.25, st.w * 0.9);
+          g.add(ear);
+        }
       }
+      // dört bacak (pivot üstte — yürüme animasyonu döndürür)
+      const legG = new THREE.BoxGeometry(0.16, legH + 0.06, 0.16);
+      legG.translate(0, -(legH + 0.06) / 2, 0);
+      const legs = [];
+      for (const [lx, lz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
+        const leg = new THREE.Mesh(legG, dark);
+        leg.position.set(lx * st.w * 0.34, legH + 0.03, lz * st.w * 0.6);
+        g.add(leg);
+        legs.push(leg);
+      }
+      g.userData.legs = legs;
     }
     bodyMesh.castShadow = true;
     bodyMesh.userData.mobId = m.id;
@@ -391,11 +483,21 @@ export class World {
       e.group.position.set(e.x, groundH(e.x, e.z), e.z);
       if (speed > 0.05) {
         e.group.rotation.y = Math.atan2(dx, dz);
-        e.group.position.y += Math.abs(Math.sin(t * 9)) * 0.09;  // yürüme zıplaması
+        e.walk += dt * 10;
+        const s = Math.sin(e.walk);
+        e.legL.rotation.x = s * 0.7;
+        e.legR.rotation.x = -s * 0.7;
+        e.armL.rotation.x = -s * 0.5;
+        if (e.swing <= 0) e.armSw.rotation.x = s * 0.5;
+        e.group.position.y += Math.abs(Math.sin(e.walk)) * 0.05;
+      } else {
+        e.legL.rotation.x *= 0.85; e.legR.rotation.x *= 0.85; e.armL.rotation.x *= 0.85;
+        if (e.swing <= 0) e.armSw.rotation.x *= 0.85;
       }
-      if (e.swing > 0) {   // kılıç savurma
+      if (e.swing > 0) {   // kılıç savurma: kolu yukarıdan aşağı indir
         e.swing -= dt;
-        e.sword.rotation.z = -0.5 - Math.sin((0.24 - e.swing) / 0.24 * Math.PI) * 1.4;
+        const k = Math.sin((0.24 - e.swing) / 0.24 * Math.PI);
+        e.armSw.rotation.x = -2.1 * k;
       }
     }
     for (const [id, e] of this.mobs) {
@@ -410,7 +512,16 @@ export class World {
       e.x += dx * Math.min(1, dt * 10);
       e.z += dz * Math.min(1, dt * 10);
       e.group.position.set(e.x, groundH(e.x, e.z), e.z);
-      if (Math.hypot(dx, dz) > 0.05) e.group.rotation.y = Math.atan2(dx, dz);
+      const mobMoving = Math.hypot(dx, dz) > 0.05;
+      if (mobMoving) e.group.rotation.y = Math.atan2(dx, dz);
+      const legs = e.group.userData.legs;
+      if (legs) {
+        e.walk = (e.walk || 0) + (mobMoving ? dt * 11 : 0);
+        legs.forEach((leg, i) => {
+          leg.rotation.x = mobMoving ? Math.sin(e.walk + (i % 2) * Math.PI) * 0.7
+                                     : leg.rotation.x * 0.85;
+        });
+      }
       if (MOB_STYLE[e.code]?.shape === 'metin') {
         e.group.rotation.y = t * 0.4;   // metinler yavaşça döner
         e.body.material.emissiveIntensity = 0.45 + Math.sin(t * 2.4) * 0.2;

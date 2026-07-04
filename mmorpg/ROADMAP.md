@@ -46,8 +46,9 @@ Test kancası: tarayıcı konsolunda `window.__mmo()`.
 2. **Skiller**: `GameHub.CastSkill(skillId)` + cooldown/mana; `WorldService`'te
    alan hasarı (AoE) hesabı; istemcide skill çubuğu (1-4 tuşları) + efektler.
    MP alanı PlayerState/Character'da yok — ekle (MaxMp formülü MaxHp gibi).
-3. **Ekipman**: `InventoryItem`'a slot/stat; kuşan/çıkar hub metodları; hasar
-   formülüne silah katkısı; drop tablolarına silah/zırh.
+3. **Ekipman**: ✅ silahlar eklendi (drop + Equip/Unequip + hasar bonusu +
+   ızgara envanter/taşıma/tooltip). Kalan: zırh/kask/kalkan slotları, savunma
+   statı, item seviye şartı, yükseltme (+1..+9).
 4. **Şifa otu kullanımı**: envanterden tıklayınca `UseItem(code)` → HP tazele
    (sunucuda doğrula, sayıyı düş).
 5. **NPC + ticaret**: köyde satıcı NPC (mesh + etkileşim menzili); item satışı
@@ -77,6 +78,7 @@ Test kancası: tarayıcı konsolunda `window.__mmo()`.
   sınırlandırılıyor ama hızlı `MoveTo` spam'i sorun değil (hedef üzerine yazılır).
 - EF migrations yok: şema `EnsureCreated` ile kurulur. Şema değişikliğinde ya
   .db dosyalarını sil ya da migrations'a geç (`dotnet ef migrations add ...`).
+  (Silah/slot güncellemesi şemayı değiştirdi: eski `game.db` varsa SİL.)
 - Üç serviste aynı `Jwt:Key` (appsettings) — değiştirirsen üçünü birden değiştir.
 
 ## Test

@@ -45,10 +45,46 @@
 
   <div id="notices"></div>
 
+  <div id="minimap-wrap">
+    <canvas id="minimap" width="150" height="150"></canvas>
+    <div id="minimap-zone">Doğu Vadisi</div>
+  </div>
+
   <div id="side-btns">
     <button id="btn-friends" title="Arkadaşlar">👥</button>
-    <button id="btn-inv" title="Envanter">🎒</button>
+    <button id="btn-inv" title="Envanter (I)">🎒</button>
+    <button id="btn-char" title="Karakter (C)">🧝</button>
     <button id="btn-board" title="Sıralama">🏆</button>
+  </div>
+
+  <!-- Metin2 tarzı envanter -->
+  <div id="inv-win" class="m2-win hidden">
+    <div class="m2-head">ENVANTER <button class="m2-close" data-close="inv-win">✕</button></div>
+    <div id="equip-row">
+      <div id="equip-slot" class="inv-slot equip" title="Silah yuvası"></div>
+      <div id="equip-info">Silah yok<br><small>Silaha çift tıkla → kuşan</small></div>
+    </div>
+    <div id="inv-grid"></div>
+    <div id="inv-yang">💰 <span id="inv-yang-val">0</span> Yang</div>
+  </div>
+
+  <!-- Karakter penceresi -->
+  <div id="char-win" class="m2-win hidden">
+    <div class="m2-head">KARAKTER <button class="m2-close" data-close="char-win">✕</button></div>
+    <div id="char-body"></div>
+  </div>
+
+  <div id="item-tip" class="hidden"></div>
+
+  <!-- Alt HUD: hızlı yuvalar + XP şeridi -->
+  <div id="bottom-hud">
+    <div id="quickslots">
+      <div class="qslot" title="Skill sistemi yakında">1</div>
+      <div class="qslot" title="Skill sistemi yakında">2</div>
+      <div class="qslot" title="Skill sistemi yakında">3</div>
+      <div class="qslot" title="Skill sistemi yakında">4</div>
+    </div>
+    <div id="xp-strip-wrap" title="XP"><div id="xp-strip"></div></div>
   </div>
 
   <div id="panel" class="hidden">

@@ -7,7 +7,8 @@ public record MobDef(
     float Speed, float AggroRange, float AttackRange, float AttackCooldown,
     int Xp, int YangMin, int YangMax, DropDef[] Drops, float RespawnSeconds, float Scale);
 
-public record ItemDef(string Code, string Name, string Icon, string Desc);
+public record ItemDef(string Code, string Name, string Icon, string Desc,
+    string Type = "malzeme", int Bonus = 0);
 
 public record SpawnZone(string MobCode, float X, float Z, float Radius, int Count);
 
@@ -34,23 +35,29 @@ public static class GameConfig
         new("ayi_pencesi", "Ayı Pençesi", "🐻", "Güç iksirlerinin ham maddesi."),
         new("metin_parcasi", "Metin Parçası", "💎", "Metin taşının kalbinden nadir kristal."),
         new("sifa_otu", "Şifa Otu", "🌿", "Canını tazeler (ileride kullanılabilir)."),
+        // silahlar: kuşanınca saldırı gücü ekler
+        new("pasli_kilic", "Paslı Kılıç", "🗡️", "Eski ama iş görür.", "silah", 4),
+        new("kurt_disi_kilic", "Kurt Dişi Kılıç", "⚔️", "Kurt sürüsünün laneti.", "silah", 9),
+        new("akrep_hanceri", "Akrep Hançeri", "🔪", "Zehir gibi keser.", "silah", 14),
+        new("ayi_baltasi", "Ayı Baltası", "🪓", "Dağ gibi vurur.", "silah", 22),
+        new("metin_kilici", "Metin Kılıcı", "🌟", "Metin kristalinden dövüldü.", "silah", 32),
     ];
 
     public static readonly MobDef[] Mobs =
     [
         new("yaban_domuzu", "Yaban Domuzu", false, 1, 60, 5, 2.4f, 6f, 1.7f, 1.6f,
-            25, 5, 15, [new("domuz_derisi", 0.5, 2), new("sifa_otu", 0.15, 1)], 12f, 1f),
+            25, 5, 15, [new("domuz_derisi", 0.5, 2), new("sifa_otu", 0.15, 1), new("pasli_kilic", 0.08, 1)], 12f, 1f),
         new("kurt", "Kurt", false, 3, 115, 9, 3.4f, 8f, 1.8f, 1.4f,
-            48, 12, 28, [new("kurt_postu", 0.45, 1), new("sifa_otu", 0.15, 1)], 15f, 1.05f),
+            48, 12, 28, [new("kurt_postu", 0.45, 1), new("sifa_otu", 0.15, 1), new("kurt_disi_kilic", 0.06, 1)], 15f, 1.05f),
         new("col_akrebi", "Çöl Akrebi", false, 5, 180, 14, 2.8f, 7f, 1.7f, 1.5f,
-            80, 20, 45, [new("zehir_ignesi", 0.4, 2)], 18f, 0.95f),
+            80, 20, 45, [new("zehir_ignesi", 0.4, 2), new("akrep_hanceri", 0.06, 1)], 18f, 0.95f),
         new("dag_ayisi", "Dağ Ayısı", false, 8, 320, 22, 2.9f, 7.5f, 2.0f, 1.8f,
-            150, 40, 80, [new("ayi_pencesi", 0.5, 2), new("sifa_otu", 0.2, 1)], 25f, 1.35f),
+            150, 40, 80, [new("ayi_pencesi", 0.5, 2), new("sifa_otu", 0.2, 1), new("ayi_baltasi", 0.06, 1)], 25f, 1.35f),
         // Metin taşları: sabit, saldırmaz; vurulunca çevreye bekçi çağırır, kırılınca bol ödül.
         new("metin_kaya", "Kaya Metini", true, 5, 950, 0, 0f, 0f, 0f, 0f,
             420, 180, 350, [new("metin_parcasi", 1.0, 2), new("sifa_otu", 0.6, 2)], 60f, 1f),
         new("metin_ates", "Ateş Metini", true, 9, 1700, 0, 0f, 0f, 0f, 0f,
-            950, 400, 700, [new("metin_parcasi", 1.0, 4)], 90f, 1.2f),
+            950, 400, 700, [new("metin_parcasi", 1.0, 4), new("metin_kilici", 0.3, 1)], 90f, 1.2f),
     ];
 
     /// <summary>Metin vurulduğunda hangi bekçiler çağrılır.</summary>

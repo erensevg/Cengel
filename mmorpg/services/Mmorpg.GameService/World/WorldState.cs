@@ -20,8 +20,9 @@ public class PlayerState
     public double LastAttackAt;
     public double LastHitAt;                 // görsel için
     public bool Dirty;                       // DB'ye yazılacak değişiklik var
+    public int WeaponBonus;                  // kuşanılan silahın katkısı
 
-    public int Damage => GameConfig.BaseDamageFor(Level);
+    public int Damage => GameConfig.BaseDamageFor(Level) + WeaponBonus;
     public long XpNext => GameConfig.XpForLevel(Level + 1);
 }
 
