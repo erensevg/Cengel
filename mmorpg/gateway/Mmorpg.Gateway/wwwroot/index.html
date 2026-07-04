@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Metin Efsanesi — Tarayıcı MMORPG</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚔️</text></svg>">
+<link rel="stylesheet" href="css/style.css">
+<script src="vendor/signalr.min.js"></script>
+<script type="importmap">
+{ "imports": { "three": "./vendor/three/three.module.min.js" } }
+</script>
+</head>
+<body>
+<div id="app"></div>
+
+<!-- Giriş ekranı -->
+<div id="login">
+  <div class="login-box">
+    <h1>METİN<span>EFSANESİ</span></h1>
+    <p class="tagline">Tarayıcıda uçtan uca MMORPG — canavar kes, metin kır, seviye atla</p>
+    <input id="in-user" placeholder="Kullanıcı adı" maxlength="16" autocomplete="username">
+    <input id="in-pass" type="password" placeholder="Şifre" autocomplete="current-password">
+    <div class="login-btns">
+      <button id="btn-login">GİRİŞ YAP</button>
+      <button id="btn-register" class="ghost">KAYIT OL</button>
+    </div>
+    <div id="login-err"></div>
+  </div>
+</div>
+
+<!-- HUD -->
+<div id="hud" class="hidden">
+  <div id="player-frame">
+    <div id="pf-name">—</div>
+    <div class="bar hp"><div id="bar-hp"></div><span id="txt-hp"></span></div>
+    <div class="bar xp"><div id="bar-xp"></div><span id="txt-xp"></span></div>
+    <div id="pf-sub"><span id="pf-level">Sv 1</span> · <span id="pf-yang">0 Yang</span></div>
+  </div>
+
+  <div id="target-frame" class="hidden">
+    <div id="tf-name">—</div>
+    <div class="bar hp small"><div id="tf-hp"></div></div>
+  </div>
+
+  <div id="notices"></div>
+
+  <div id="side-btns">
+    <button id="btn-friends" title="Arkadaşlar">👥</button>
+    <button id="btn-inv" title="Envanter">🎒</button>
+    <button id="btn-board" title="Sıralama">🏆</button>
+  </div>
+
+  <div id="panel" class="hidden">
+    <div id="panel-head"><span id="panel-title">Panel</span><button id="panel-close">✕</button></div>
+    <div id="panel-body"></div>
+  </div>
+
+  <div id="chat">
+    <div id="chat-log"></div>
+    <div id="chat-row">
+      <input id="chat-in" placeholder="Mesaj… (/f isim mesaj = fısıltı)" maxlength="240">
+      <button id="chat-send">➤</button>
+    </div>
+  </div>
+</div>
+
+<!-- Ölüm ekranı -->
+<div id="death" class="hidden">
+  <div class="death-box">
+    <div class="death-title">ÖLDÜN</div>
+    <div id="death-by"></div>
+    <button id="btn-respawn">RUH TAŞINDA DİRİL</button>
+  </div>
+</div>
+
+<div id="levelup" class="hidden">SEVİYE ATLADIN!</div>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
