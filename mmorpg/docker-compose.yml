@@ -1,0 +1,25 @@
+# Tum mikroservisler: docker compose up --build  ->  http://localhost:5000
+services:
+  auth:
+    build: { context: ., dockerfile: services/Mmorpg.AuthService/Dockerfile }
+    environment: [ "Urls=http://0.0.0.0:5001" ]
+    ports: [ "5001:5001" ]
+  game:
+    build: { context: ., dockerfile: services/Mmorpg.GameService/Dockerfile }
+    environment: [ "Urls=http://0.0.0.0:5002" ]
+    ports: [ "5002:5002" ]
+  social:
+    build: { context: ., dockerfile: services/Mmorpg.SocialService/Dockerfile }
+    environment:
+      - Urls=http://0.0.0.0:5003
+      - Services__Auth=http://auth:5001
+    ports: [ "5003:5003" ]
+  gateway:
+    build: { context: ., dockerfile: gateway/Mmorpg.Gateway/Dockerfile }
+    environment:
+      - Urls=http://0.0.0.0:5000
+      - ReverseProxy__Clusters__auth__Destinations__d1__Address=http://auth:5001/
+      - ReverseProxy__Clusters__game__Destinations__d1__Address=http://game:5002/
+      - ReverseProxy__Clusters__social__Destinations__d1__Address=http://social:5003/
+    ports: [ "5000:5000" ]
+    depends_on: [ auth, game, social ]
