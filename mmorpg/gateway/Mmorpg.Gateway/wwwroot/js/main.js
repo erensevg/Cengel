@@ -51,7 +51,7 @@ async function startGame() {
   wireGameEvents();
   chatConn = connect('/hubs/chat');
   wireChatEvents();
-  await Promise.all([gameConn.start(), chatConn.start()]);
+  await Promise.all([gameConn.start(), chatConn.start(), world.assetsReady]);
 
   const join = await gameConn.invoke('JoinWorld');
   if (join.error) { $('login-err').textContent = join.error; return; }
@@ -668,6 +668,9 @@ addEventListener('keydown', e => {
   }
   if (e.key === 'Enter') $('chat-in').focus();
 });
+
+// tarayıcı sağ tık menüsünü kapat (sağ tık = kamera çevirme)
+addEventListener('contextmenu', e => e.preventDefault());
 
 // tarayıcı sağ tık menüsünü kapat (sağ tık = kamera çevirme)
 addEventListener('contextmenu', e => e.preventDefault());

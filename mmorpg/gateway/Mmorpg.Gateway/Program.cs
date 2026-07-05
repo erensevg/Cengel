@@ -8,7 +8,11 @@ builder.Services.AddReverseProxy()
 var app = builder.Build();
 
 app.UseDefaultFiles();
-app.UseStaticFiles();
+// .glb/.gltf model dosyaları için MIME eşlemesi (yoksa 404 döner)
+var contentTypes = new Microsoft.AspNetCore.StaticFiles.FileExtensionContentTypeProvider();
+contentTypes.Mappings[".glb"] = "model/gltf-binary";
+contentTypes.Mappings[".gltf"] = "model/gltf+json";
+app.UseStaticFiles(new StaticFileOptions { ContentTypeProvider = contentTypes });
 
 app.MapGet("/health", () => Results.Ok(new { ok = true, service = "gateway" }));
 app.MapReverseProxy();

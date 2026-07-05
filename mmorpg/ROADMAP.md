@@ -53,6 +53,11 @@ Test kancası: tarayıcı konsolunda `window.__mmo()`.
   olaylarıyla ilerler; ödüller (yang/XP/item/skill puanı)
 - Dinamik dünya olayları: ~3dk'da bir kadim metin ya da canavar dalgası duyurusu
 - Sağ tık menüsü kapalı (sağ tık = kamera)
+- **GLTF gerçek karakterler**: KayKit Adventurers (CC0) — Şövalye (kendin),
+  Barbar/Kurnaz/Büyücü (diğer oyuncular, isim karmasına göre); AnimationMixer ile
+  Idle/Koşu/Saldırı animasyonları, crossfade; model yüklenemezse prosedürel yedek.
+  Dosyalar: wwwroot/assets/characters/*.glb (+LICENSE). Mobları da GLTF yapmak için:
+  KayKit/Quaternius hayvan paketleri → MOB_STYLE yerine aynı desenle yükle.
 
 Bilinen kısıt: görev İLERLEMESİ (progress) yeniden girişte sıfırlanır (yalnızca
 tamamlanan görevler DB'de); CharacterQuest.Progress alanına periyodik yazım eklenebilir.

@@ -1,5 +1,14 @@
 // 3B dünya: arazi, varlıklar (oyuncu/mob/metin), kamera, tıklama, efektler.
 import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { clone as cloneSkeleton } from 'three/addons/utils/SkeletonUtils.js';
+
+// KayKit Adventurers (CC0) karakterleri + animasyon adları
+const CHAR_FILES = ['Knight', 'Barbarian', 'Rogue', 'Mage'];
+const ANIM = {
+  idle: 'Idle', run: 'Running_A',
+  attack: '1H_Melee_Attack_Slice_Diagonal', death: 'Death_A',
+};
 
 const MOB_STYLE = {
   yaban_domuzu: { color: 0x8a5a33, w: 1.3, h: 0.8, shape: 'beast' },
@@ -110,6 +119,8 @@ export class World {
 
     this.mapMeshes = [];   // tema değişince sökülecekler
     this.portalPos = null;
+    this.chars = null;     // GLTF karakter kütüphanesi
+    this.assetsReady = this._loadCharacters();
     this._buildTerrain(THEMES.vadi);
     this._buildProps(THEMES.vadi);
     this._buildMarkers();
@@ -152,6 +163,17 @@ export class World {
       renderer.render(scene, this.camera);
     };
     loop();
+  }
+
+  async _loadCharacters() {
+    try {
+      const loader = new GLTFLoader();
+      this.chars = await Promise.all(CHAR_FILES.map(n =>
+        loader.loadAsync(`assets/characters/${n}.glb`)));
+    } catch (e) {
+      console.warn('Karakter modelleri yüklenemedi, basit modeller kullanılacak', e);
+      this.chars = null;
+    }
   }
 
   _buildTerrain(th) {
@@ -325,9 +347,76 @@ export class World {
 
   /* ---------------- varlıklar ---------------- */
   _makePlayer(p) {
-    // Metin2 esintili savaşçı: zırh + omuzluklar + kuşak + büyük kılıç
-    const g = new THREE.Group();
     const self = p.id === this.selfId;
+    if (this.chars) return this._makeGltfPlayer(p, self);
+    return this._makeProcPlayer(p, self);
+  }
+
+  _makeGltfPlayer(p, self) {
+    // kendin: Şövalye; diğerleri isim karmasına göre çeşitlensin
+    let idx = 0;
+    if (!self) {
+      let h = 0;
+      for (const ch of String(p.id)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+      idx = h % this.chars.length;
+    }
+    const src = this.chars[idx];
+    const model = cloneSkeleton(src.scene);
+    model.traverse(o => {
+      if (o.isMesh || o.isSkinnedMesh) { o.castShadow = true; o.frustumCulled = false; }
+    });
+    const g = new THREE.Group();
+    g.add(model);
+    const mixer = new THREE.AnimationMixer(model);
+    const act = name => {
+      const clip = src.animations.find(a => a.name === name);
+      return clip ? mixer.clipAction(clip) : null;
+    };
+    const actions = {
+      idle: act(ANIM.idle), run: act(ANIM.run),
+      attack: act(ANIM.attack), death: act(ANIM.death),
+    };
+    actions.idle?.play();
+    const label = makeLabel(p.name, self ? '#ffe9ad' : '#cfe0ff');
+    label.position.y = 2.65;
+    const hp = makeHpBar();
+    hp.sprite.position.y = 2.3;
+    const e = { group: g, mixer, actions, hp, cur: 'idle', attacking: false,
+                tx: p.x, tz: p.z, x: p.x, z: p.z, moving: false, dead: false, swing: 0 };
+    e.setAnim = (name, fade = 0.18) => {
+      if (e.cur === name || !e.actions[name]) return;
+      const from = e.actions[e.cur], to = e.actions[name];
+      to.reset().play();
+      if (from && from !== to) from.crossFadeTo(to, fade, false);
+      e.cur = name;
+    };
+    e.playAttack = () => {
+      const a = e.actions.attack;
+      if (!a || e.attacking) return;
+      e.attacking = true;
+      a.reset();
+      a.setLoop(THREE.LoopOnce);
+      a.timeScale = 1.6;
+      a.clampWhenFinished = false;
+      const from = e.actions[e.cur];
+      if (from && from !== a) from.crossFadeTo(a, 0.08, false);
+      a.play();
+      const prev = e.cur;
+      e.cur = 'attack_';
+      setTimeout(() => {
+        e.attacking = false;
+        e.cur = '';
+        e.setAnim(prev === 'attack_' ? 'idle' : prev || 'idle');
+      }, (a.getClip().duration / 1.6) * 1000 - 60);
+    };
+    g.add(label, hp.sprite);
+    this.scene.add(g);
+    return e;
+  }
+
+  _makeProcPlayer(p, self) {
+    // Yedek: Metin2 esintili savaşçı (modeller yüklenemezse)
+    const g = new THREE.Group();
     const armorC = self ? 0x7d1f1f : 0x2c3e6b;   // kendin: kızıl zırh, diğerleri: çelik mavisi
     const trimC = self ? 0xe8b84b : 0x9fb4d8;
     const armor = new THREE.MeshStandardMaterial({ color: armorC, roughness: 0.5, metalness: 0.45 });
@@ -594,6 +683,13 @@ export class World {
       e.z += dz * Math.min(1, dt * 10);
       const speed = Math.hypot(dx, dz);
       e.group.position.set(e.x, groundH(e.x, e.z), e.z);
+      if (e.mixer) {
+        e.mixer.update(dt);
+        if (speed > 0.05) e.group.rotation.y = Math.atan2(dx, dz);
+        if (!e.attacking) e.setAnim(speed > 0.05 ? 'run' : 'idle');
+        if (e.swing > 0) { e.swing = 0; e.playAttack(); }
+        continue;
+      }
       if (speed > 0.05) {
         e.group.rotation.y = Math.atan2(dx, dz);
         e.walk += dt * 10;
