@@ -22,7 +22,10 @@ public class PlayerState
     public long? AttackMobId;
     public double LastAttackAt;
     public bool Dirty;
-    public int WeaponBonus;
+    public int AttackBonus;                  // kuşanılı ekipman toplamı (+'lı)
+    public int Defense;
+    public int HpBonus;
+    public int GlowTier;                     // 0 yok, 1:+9, 2:+10, 3:+11
     public int SkillPoints;
     public readonly Dictionary<string, int> Skills = new();       // code -> derece
     public readonly Dictionary<string, double> Cooldowns = new(); // code -> hazır olacağı an
@@ -35,7 +38,7 @@ public class PlayerState
     {
         get
         {
-            var d = GameConfig.BaseDamageFor(Level) + WeaponBonus;
+            var d = GameConfig.BaseDamageFor(Level) + AttackBonus;
             return BuffActive ? (int)(d * BuffMult) : d;
         }
     }
@@ -122,7 +125,7 @@ public class WorldState
             {
                 id = p.CharacterId, name = p.Name, x = p.X, z = p.Z,
                 hp = p.Hp, maxHp = p.MaxHp, level = p.Level, dead = p.Dead,
-                moving = p.TargetX.HasValue, buff = p.BuffActive,
+                moving = p.TargetX.HasValue, buff = p.BuffActive, glow = p.GlowTier,
             }),
             mobs = map.Mobs.Values.Where(m => !m.Dead).Select(m => new
             {

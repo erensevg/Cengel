@@ -71,9 +71,13 @@
   <!-- Metin2 tarzı envanter -->
   <div id="inv-win" class="m2-win hidden">
     <div class="m2-head">ENVANTER <button class="m2-close" data-close="inv-win">✕</button></div>
-    <div id="equip-row">
-      <div id="equip-slot" class="inv-slot equip" title="Silah yuvası"></div>
-      <div id="equip-info">Silah yok<br><small>Silaha çift tıkla → kuşan</small></div>
+    <div id="equip-grid">
+      <div class="inv-slot equip" data-etype="silah" title="Silah"></div>
+      <div class="inv-slot equip" data-etype="zirh" title="Zırh"></div>
+      <div class="inv-slot equip" data-etype="kalkan" title="Kalkan"></div>
+      <div class="inv-slot equip" data-etype="kupe" title="Küpe"></div>
+      <div class="inv-slot equip" data-etype="kolye" title="Kolye"></div>
+      <div class="inv-slot equip" data-etype="bileklik" title="Bileklik"></div>
     </div>
     <div id="inv-grid"></div>
     <div id="inv-yang">💰 <span id="inv-yang-val">0</span> Yang</div>
@@ -90,6 +94,22 @@
     <div class="m2-head">SKİLLER <span id="sk-points" class="sk-pts">0 puan</span>
       <button class="m2-close" data-close="skill-win">✕</button></div>
     <div id="skill-body"></div>
+  </div>
+
+  <!-- Tüccar dükkanı -->
+  <div id="shop-win" class="m2-win hidden">
+    <div class="m2-head">TÜCCAR HONG
+      <span class="shop-tabs"><button id="tab-buy" class="on">AL</button><button id="tab-sell">SAT</button></span>
+      <button class="m2-close" data-close="shop-win">✕</button></div>
+    <div id="shop-body"></div>
+    <div id="shop-yang">💰 <span id="shop-yang-val">0</span> Yang</div>
+  </div>
+
+  <!-- Demirci -->
+  <div id="smith-win" class="m2-win hidden">
+    <div class="m2-head">DEMİRCİ KAYA — + BASMA <button class="m2-close" data-close="smith-win">✕</button></div>
+    <div id="smith-note">+9 hafif, +10 altın, +11 KIRMIZI parlar. Başarısızlıkta malzemeler yanar.</div>
+    <div id="smith-body"></div>
   </div>
 
   <!-- Işınlanma penceresi -->

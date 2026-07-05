@@ -176,7 +176,7 @@ public class WorldService(
             else if (now - mob.LastAttackAt >= def.AttackCooldown)
             {
                 mob.LastAttackAt = now;
-                var dmg = Vary(def.Damage);
+                var dmg = Math.Max(1, Vary(def.Damage) * 100 / (100 + target.Defense));
                 target.Hp -= dmg; target.Dirty = true;
                 _ = Group(map).SendAsync("dmg",
                     new { tt = "pl", id = target.CharacterId, a = dmg, crit = false, from = def.Name });
@@ -237,7 +237,15 @@ public class WorldService(
         var drops = new List<(string code, int count)>();
         foreach (var d in mob.Def.Drops)
             if (Rng.NextDouble() < d.Chance)
+            {
                 drops.Add((d.Code, Rng.Next(1, d.Max + 1)));
+                if (d.Chance < 0.001)   // efsane drop: tüm dünyaya duyur
+                {
+                    var itemName = GameConfig.ItemByCode(d.Code)?.Name ?? d.Code;
+                    Broadcast($"🌟🌟 {p.Name}, {itemName} DÜŞÜRDÜ!! " +
+                              $"({GameConfig.MapById(map.Id)!.Name})");
+                }
+            }
 
         GainXp(p, mob.Def.Xp);
         p.Dirty = true;
@@ -268,7 +276,7 @@ public class WorldService(
         }
         if (leveled)
         {
-            p.MaxHp = GameConfig.MaxHpFor(p.Level);
+            p.MaxHp = GameConfig.MaxHpFor(p.Level) + p.HpBonus;
             p.Hp = p.MaxHp;
             p.MaxMp = GameConfig.MaxMpFor(p.Level);
             p.Mp = p.MaxMp;
@@ -427,12 +435,39 @@ public class WorldService(
     /* ================= yardımcılar / kalıcılık ================= */
     private IClientProxy Group(MapState map) => hub.Clients.Group(WorldState.Group(map.Id));
 
+    /// <summary>Kuşanılı ekipmandan saldırı/savunma/HP bonusu + parlama kademesi.</summary>
+    public static void RecalcStats(PlayerState p,
+        IEnumerable<(string Code, int Plus)> equipped)
+    {
+        int atk = 0, def = 0, hp = 0, maxPlus = -1;
+        foreach (var (code, plus) in equipped)
+        {
+            var d = GameConfig.ItemByCode(code);
+            if (d is null) continue;
+            atk += GameConfig.Boost(d.Bonus, plus);
+            def += GameConfig.Boost(d.Defense, plus);
+            hp += GameConfig.Boost(d.HpBonus, plus);
+            maxPlus = Math.Max(maxPlus, plus);
+        }
+        p.AttackBonus = atk;
+        p.Defense = def;
+        p.HpBonus = hp;
+        p.GlowTier = maxPlus >= 11 ? 3 : maxPlus >= 10 ? 2 : maxPlus >= 9 ? 1 : 0;
+        var newMax = GameConfig.MaxHpFor(p.Level) + hp;
+        if (p.MaxHp != newMax)
+        {
+            p.Hp = Math.Min(newMax, Math.Max(1, p.Hp));
+            p.MaxHp = newMax;
+            p.Hp = Math.Min(p.Hp, p.MaxHp);
+        }
+    }
+
     public void SendStats(PlayerState p) =>
         _ = hub.Clients.Client(p.ConnectionId).SendAsync("stats", new
         {
             level = p.Level, xp = p.Xp, xpNext = p.XpNext,
             hp = p.Hp, maxHp = p.MaxHp, mp = p.Mp, maxMp = p.MaxMp,
-            damage = p.Damage, yang = p.Yang,
+            damage = p.Damage, yang = p.Yang, defense = p.Defense,
             skillPoints = p.SkillPoints, buff = p.BuffActive,
         });
 
@@ -449,7 +484,7 @@ public class WorldService(
             foreach (var (code, count) in drops)
             {
                 var def = GameConfig.ItemByCode(code)!;
-                var row = def.Type == "silah" ? null
+                var row = GameConfig.IsEquipType(def.Type) ? null
                     : rows.FirstOrDefault(i => i.ItemCode == code);
                 if (row is null)
                 {

@@ -8,7 +8,10 @@ public record MobDef(
     int Xp, int YangMin, int YangMax, DropDef[] Drops, float RespawnSeconds, float Scale);
 
 public record ItemDef(string Code, string Name, string Icon, string Desc,
-    string Type = "malzeme", int Bonus = 0, int HealHp = 0, int HealMp = 0);
+    string Type = "malzeme", int Bonus = 0, int HealHp = 0, int HealMp = 0,
+    int Defense = 0, int HpBonus = 0, long Price = 0);
+
+public record NpcDef(string Id, string Name, string Role, string MapId, float X, float Z);
 
 public record SpawnZone(string MapId, string MobCode, float X, float Z, float Radius, int Count);
 
@@ -51,27 +54,44 @@ public static class GameConfig
 
     public static readonly ItemDef[] Items =
     [
-        new("domuz_derisi", "Domuz Derisi", "🐗", "Yaban domuzundan düşer, tüccara satılır."),
-        new("kurt_postu", "Kurt Postu", "🐺", "Kalın kış postu."),
-        new("zehir_ignesi", "Zehir İğnesi", "🦂", "Akrep kuyruğundan; simyada kullanılır."),
-        new("ayi_pencesi", "Ayı Pençesi", "🐻", "Güç iksirlerinin ham maddesi."),
-        new("metin_parcasi", "Metin Parçası", "💎", "Metin taşının kalbinden nadir kristal."),
-        new("buz_kristali", "Buz Kristali", "❄️", "Buz Zirvesi'nin donmuş gözyaşı."),
-        new("sifa_otu", "Şifa Otu", "🌿", "Çiğnenince canı tazeler.", "iksir", 0, 40),
+        // malzemeler (tüccara satılır)
+        new("domuz_derisi", "Domuz Derisi", "🐗", "Yaban domuzundan düşer, tüccara satılır.", Price: 8),
+        new("kurt_postu", "Kurt Postu", "🐺", "Kalın kış postu.", Price: 14),
+        new("zehir_ignesi", "Zehir İğnesi", "🦂", "Akrep kuyruğundan; simyada kullanılır.", Price: 22),
+        new("ayi_pencesi", "Ayı Pençesi", "🐻", "Güç iksirlerinin ham maddesi.", Price: 35),
+        new("metin_parcasi", "Metin Parçası", "💎", "Metin kristali — DEMİRCİDE + BASMAK İÇİN GEREKLİ.", Price: 150),
+        new("buz_kristali", "Buz Kristali", "❄️", "Buz Zirvesi'nin donmuş gözyaşı.", Price: 80),
         // iksirler
-        new("kucuk_hp_iksiri", "Küçük Can İksiri", "🧪", "Canı 80 tazeler.", "iksir", 0, 80),
-        new("buyuk_hp_iksiri", "Büyük Can İksiri", "⚗️", "Canı 250 tazeler.", "iksir", 0, 250),
-        new("kucuk_mp_iksiri", "Küçük Mana İksiri", "💧", "Manayı 50 tazeler.", "iksir", 0, 0, 50),
-        new("buyuk_mp_iksiri", "Büyük Mana İksiri", "🔮", "Manayı 150 tazeler.", "iksir", 0, 0, 150),
+        new("sifa_otu", "Şifa Otu", "🌿", "Çiğnenince canı tazeler.", "iksir", HealHp: 40, Price: 15),
+        new("kucuk_hp_iksiri", "Küçük Can İksiri", "🧪", "Canı 80 tazeler.", "iksir", HealHp: 80, Price: 45),
+        new("buyuk_hp_iksiri", "Büyük Can İksiri", "⚗️", "Canı 250 tazeler.", "iksir", HealHp: 250, Price: 130),
+        new("kucuk_mp_iksiri", "Küçük Mana İksiri", "💧", "Manayı 50 tazeler.", "iksir", HealMp: 50, Price: 40),
+        new("buyuk_mp_iksiri", "Büyük Mana İksiri", "🔮", "Manayı 150 tazeler.", "iksir", HealMp: 150, Price: 110),
         new("isinlanma_parsomeni", "Işınlanma Parşömeni", "📜",
-            "Nerede olursan ol, ışınlanma kapısını açar.", "parsomen"),
+            "Nerede olursan ol, ışınlanma kapısını açar.", "parsomen", Price: 320),
         // silahlar
-        new("pasli_kilic", "Paslı Kılıç", "🗡️", "Eski ama iş görür.", "silah", 4),
-        new("kurt_disi_kilic", "Kurt Dişi Kılıç", "⚔️", "Kurt sürüsünün laneti.", "silah", 9),
-        new("akrep_hanceri", "Akrep Hançeri", "🔪", "Zehir gibi keser.", "silah", 14),
-        new("ayi_baltasi", "Ayı Baltası", "🪓", "Dağ gibi vurur.", "silah", 22),
+        new("pasli_kilic", "Paslı Kılıç", "🗡️", "Eski ama iş görür.", "silah", 4, Price: 220),
+        new("kurt_disi_kilic", "Kurt Dişi Kılıç", "⚔️", "Kurt sürüsünün laneti.", "silah", 9, Price: 700),
+        new("akrep_hanceri", "Akrep Hançeri", "🔪", "Zehir gibi keser.", "silah", 14, Price: 1800),
+        new("ayi_baltasi", "Ayı Baltası", "🪓", "Dağ gibi vurur.", "silah", 22, Price: 4500),
         new("metin_kilici", "Metin Kılıcı", "🌟", "Metin kristalinden dövüldü.", "silah", 32),
         new("buz_kilici", "Buz Kılıcı", "🧊", "Dokunduğunu dondurur.", "silah", 45),
+        new("ejder_kilici", "EJDER KILICI", "🐉", "Efsane: Ejder Tanrısı'nın dişinden dövüldü.", "silah", 70),
+        // zırhlar
+        new("deri_zirh", "Deri Zırh", "🦺", "Sertleştirilmiş domuz derisi.", "zirh", Defense: 6, HpBonus: 20, Price: 300),
+        new("plaka_zirh", "Plaka Zırh", "🛡️", "Dövme çelik plakalar.", "zirh", Defense: 14, HpBonus: 60, Price: 2400),
+        new("ejder_zirhi", "Ejder Zırhı", "🐲", "Ejder pulundan; ateşe dayanıklı.", "zirh", Defense: 28, HpBonus: 150),
+        // kalkanlar
+        new("tahta_kalkan", "Tahta Kalkan", "🪵", "Basit ama güvenilir.", "kalkan", Defense: 4, Price: 180),
+        new("demir_kalkan", "Demir Kalkan", "⚙️", "Ağır ve sağlam.", "kalkan", Defense: 10, Price: 1400),
+        new("buz_kalkani", "Buz Kalkanı", "🧿", "Buz metininin kalbinden.", "kalkan", Defense: 20, HpBonus: 40),
+        // takılar
+        new("yesim_kupe", "Yeşim Küpe", "🟢", "Şans getirdiğine inanılır.", "kupe", 3, HpBonus: 15, Price: 850),
+        new("ates_kupesi", "Ateş Küpesi", "🔥", "Çöl metininin közünden.", "kupe", 8, HpBonus: 30),
+        new("kurt_disi_kolye", "Kurt Dişi Kolye", "🦷", "Sürünün gücünü taşır.", "kolye", 5, HpBonus: 20, Price: 950),
+        new("ejderin_gozyasi", "EJDERİN GÖZYAŞI", "💠", "Efsane kolye: takanı Ejder korur.", "kolye", 20, Defense: 10, HpBonus: 100),
+        new("deri_bileklik", "Deri Bileklik", "🟤", "Bileği sağlam tutar.", "bileklik", Defense: 2, HpBonus: 25, Price: 550),
+        new("kadim_bileklik", "KADİM BİLEKLİK", "🌀", "Efsane: ilk savaşçıların yadigarı.", "bileklik", 10, Defense: 8, HpBonus: 60),
     ];
 
     public static readonly MobDef[] Mobs =
@@ -88,7 +108,11 @@ public static class GameConfig
         new("metin_kaya", "Kaya Metini", true, 5, 950, 0, 0f, 0f, 0f, 0f,
             420, 180, 350,
             [new("metin_parcasi", 1, 2), new("buyuk_hp_iksiri", .6, 2),
-             new("isinlanma_parsomeni", .5, 1)], 60f, 1f),
+             new("isinlanma_parsomeni", .5, 1), new("deri_zirh", .10, 1),
+             new("tahta_kalkan", .10, 1), new("yesim_kupe", .04, 1),
+             new("ejder_kilici", 1.0 / 3_000_000, 1),
+             new("ejderin_gozyasi", 1.0 / 1_000_000, 1),
+             new("kadim_bileklik", 1.0 / 250_000, 1)], 60f, 1f),
         // — Kızıl Çöl —
         new("col_akrebi", "Çöl Akrebi", false, 6, 200, 15, 2.8f, 7f, 1.7f, 1.5f,
             90, 22, 48,
@@ -105,7 +129,12 @@ public static class GameConfig
         new("metin_ates", "Ateş Metini", true, 9, 1700, 0, 0f, 0f, 0f, 0f,
             950, 400, 700,
             [new("metin_parcasi", 1, 4), new("buyuk_hp_iksiri", .8, 3),
-             new("isinlanma_parsomeni", .6, 1), new("metin_kilici", .3, 1)], 90f, 1.2f),
+             new("isinlanma_parsomeni", .6, 1), new("metin_kilici", .3, 1),
+             new("plaka_zirh", .09, 1), new("demir_kalkan", .09, 1),
+             new("ates_kupesi", .05, 1), new("kurt_disi_kolye", .06, 1),
+             new("ejder_kilici", 1.0 / 3_000_000, 1),
+             new("ejderin_gozyasi", 1.0 / 1_000_000, 1),
+             new("kadim_bileklik", 1.0 / 250_000, 1)], 90f, 1.2f),
         // — Buz Zirvesi —
         new("buz_kurdu", "Buz Kurdu", false, 12, 480, 34, 3.7f, 9f, 1.8f, 1.3f,
             280, 60, 120,
@@ -118,7 +147,12 @@ public static class GameConfig
         new("metin_buz", "Buz Metini", true, 14, 2800, 0, 0f, 0f, 0f, 0f,
             2200, 900, 1600,
             [new("metin_parcasi", 1, 6), new("buz_kristali", 1, 3),
-             new("buz_kilici", .35, 1), new("isinlanma_parsomeni", .8, 2)], 120f, 1.35f),
+             new("buz_kilici", .35, 1), new("isinlanma_parsomeni", .8, 2),
+             new("ejder_zirhi", .07, 1), new("buz_kalkani", .07, 1),
+             new("deri_bileklik", .10, 1),
+             new("ejder_kilici", 1.0 / 3_000_000, 1),
+             new("ejderin_gozyasi", 1.0 / 1_000_000, 1),
+             new("kadim_bileklik", 1.0 / 250_000, 1)], 120f, 1.35f),
     ];
 
     public static readonly Dictionary<string, string> MetinGuard = new()
@@ -196,6 +230,31 @@ public static class GameConfig
             2000, 1500, "buz_kilici", 1, 2),
     ];
 
+    /// <summary>Köy NPC'leri (tüm haritalarda spawn yanında).</summary>
+    public static readonly NpcDef[] Npcs =
+    [
+        new("demirci", "Demirci Kaya", "demirci", "dogu", -7f, -3f),
+        new("tuccar", "Tüccar Hong", "tuccar", "dogu", -3f, 1f),
+        new("demirci_col", "Demirci Kaya", "demirci", "col", -7f, -3f),
+        new("tuccar_col", "Tüccar Hong", "tuccar", "col", -3f, 1f),
+        new("demirci_zirve", "Demirci Kaya", "demirci", "zirve", -7f, -3f),
+        new("tuccar_zirve", "Tüccar Hong", "tuccar", "zirve", -3f, 1f),
+    ];
+
+    /// <summary>+N başarı şansı (indeks = mevcut +). +9:%20, +10:%15, +11:%10.</summary>
+    public static readonly double[] UpgradeChance =
+        [1.0, 0.90, 0.80, 0.65, 0.55, 0.45, 0.35, 0.25, 0.20, 0.15, 0.10];
+    public const int MaxPlus = 11;
+    public static long UpgradeYangCost(int plus) => 200L * (plus + 1) * (plus + 1);
+    public static int UpgradeShardCost(int plus) => 1 + plus / 3;
+
+    /// <summary>+'ın stat çarpanı: her + %10.</summary>
+    public static int Boost(int stat, int plus) =>
+        (int)Math.Round(stat * (1 + 0.10 * plus));
+
+    public static bool IsEquipType(string type) =>
+        type is "silah" or "zirh" or "kalkan" or "kupe" or "kolye" or "bileklik";
+
     public static MobDef MobByCode(string code) => Mobs.First(m => m.Code == code);
     public static ItemDef? ItemByCode(string code) => Items.FirstOrDefault(i => i.Code == code);
     public static MapDef? MapById(string id) => Maps.FirstOrDefault(m => m.Id == id);
@@ -213,6 +272,9 @@ public static class GameConfig
         items = Items,
         skills = Skills,
         maps = Maps,
+        npcs = Npcs,
+        upgradeChance = UpgradeChance,
+        maxPlus = MaxPlus,
         quests = Quests.Select(q => new
         {
             q.Code, q.Title, q.Kind, q.TargetCode, q.TargetCount,

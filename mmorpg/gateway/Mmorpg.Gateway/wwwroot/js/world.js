@@ -299,6 +299,52 @@ export class World {
     this.portal = g;
     this.portalRing = ring;
     this.scene.add(g);
+
+    // köy NPC'leri + kulübeler
+    if (this.npcs) for (const n of this.npcs) this.scene.remove(n.group);
+    this.npcs = [];
+    const npcModel = { demirci: 1, tuccar: 3 };   // Barbarian, Mage
+    for (const npc of (this.cfg.npcs || []).filter(n => n.mapId === mapDef.id)) {
+      const grp = new THREE.Group();
+      let clickMesh;
+      if (this.chars) {
+        const src = this.chars[npcModel[npc.role] ?? 0];
+        const model = cloneSkeleton(src.scene);
+        model.traverse(o => { if (o.isMesh || o.isSkinnedMesh) { o.castShadow = true; o.frustumCulled = false; o.userData.npcRole = npc.role; } });
+        grp.add(model);
+        const mixer = new THREE.AnimationMixer(model);
+        const clip = src.animations.find(a => a.name === 'Idle');
+        if (clip) mixer.clipAction(clip).play();
+        this.npcs.push({ group: grp, mixer, role: npc.role });
+        clickMesh = model;
+      } else {
+        clickMesh = new THREE.Mesh(new THREE.CapsuleGeometry(0.4, 1, 4, 8),
+          new THREE.MeshStandardMaterial({ color: 0xaa8844 }));
+        clickMesh.position.y = 0.9;
+        clickMesh.userData.npcRole = npc.role;
+        grp.add(clickMesh);
+        this.npcs.push({ group: grp, role: npc.role });
+      }
+      const lbl = makeLabel((npc.role === 'demirci' ? '⚒️ ' : '💰 ') + npc.name, '#ffd76e', 26);
+      lbl.position.y = 2.7;
+      grp.add(lbl);
+      grp.position.set(npc.x, groundH(npc.x, npc.z), npc.z);
+      grp.rotation.y = Math.PI / 3;
+      this.scene.add(grp);
+      // kulübe
+      const hut = new THREE.Group();
+      const wall = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 1.7, 1.6, 8),
+        new THREE.MeshStandardMaterial({ color: 0x7a5f3a, roughness: .9 }));
+      wall.position.y = 0.8; wall.castShadow = true;
+      const roof = new THREE.Mesh(new THREE.ConeGeometry(2.2, 1.4, 8),
+        new THREE.MeshStandardMaterial({ color: 0x8a3a2a, roughness: .9 }));
+      roof.position.y = 2.3; roof.castShadow = true;
+      hut.add(wall, roof);
+      hut.position.set(npc.x - 2.5, groundH(npc.x - 2.5, npc.z - 2), npc.z - 2);
+      this.scene.add(hut);
+      this.mapMeshes.push(hut);
+      this.npcs[this.npcs.length - 1].group = grp;
+    }
   }
 
   clearEntities() {
@@ -307,6 +353,52 @@ export class World {
     this.players.clear();
     this.mobs.clear();
     this.select(null);
+  }
+
+  /* ---------------- +9/+10/+11 aurası ---------------- */
+  static _glowTex = null;
+  static glowTex() {
+    if (World._glowTex) return World._glowTex;
+    const c = document.createElement('canvas');
+    c.width = c.height = 128;
+    const g = c.getContext('2d');
+    const grd = g.createRadialGradient(64, 64, 6, 64, 64, 62);
+    grd.addColorStop(0, 'rgba(255,255,255,.9)');
+    grd.addColorStop(.45, 'rgba(255,255,255,.35)');
+    grd.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = grd; g.fillRect(0, 0, 128, 128);
+    const tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    World._glowTex = tex;
+    return tex;
+  }
+
+  setGlow(e, tier) {
+    if ((e.glowTier || 0) === tier) return;
+    e.glowTier = tier;
+    if (e.aura) { e.group.remove(e.aura); e.aura = null; }
+    if (e.auraLight) { e.group.remove(e.auraLight); e.auraLight = null; }
+    if (!tier) return;
+    const conf = {
+      1: { color: 0xeef4ff, op: 0.30, scale: 2.4, light: 0 },
+      2: { color: 0xffd75c, op: 0.45, scale: 2.8, light: 0xffc23c },
+      3: { color: 0xff3a2a, op: 0.60, scale: 3.2, light: 0xff2a1a },
+    }[tier];
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: World.glowTex(), color: conf.color, transparent: true,
+      opacity: conf.op, depthWrite: false, blending: THREE.AdditiveBlending,
+    }));
+    sp.scale.set(conf.scale, conf.scale, 1);
+    sp.position.y = 1.0;
+    e.aura = sp;
+    e.auraBase = conf.op;
+    e.group.add(sp);
+    if (conf.light) {
+      const li = new THREE.PointLight(conf.light, tier === 3 ? 14 : 8, 7);
+      li.position.y = 1.4;
+      e.auraLight = li;
+      e.group.add(li);
+    }
   }
 
   /* ---------------- skill efektleri ---------------- */
@@ -584,6 +676,7 @@ export class World {
       if (!e) { e = this._makePlayer(p); this.players.set(p.id, e); }
       e.tx = p.x; e.tz = p.z; e.moving = p.moving; e.dead = p.dead;
       e.hp.draw(p.maxHp ? p.hp / p.maxHp : 0, '#58d68d');
+      this.setGlow(e, p.glow || 0);
       e.group.visible = !p.dead;
     }
     for (const [id, e] of this.players)
@@ -663,6 +756,12 @@ export class World {
   _click(cx, cy) {
     const v = new THREE.Vector2((cx / innerWidth) * 2 - 1, -(cy / innerHeight) * 2 + 1);
     this.ray.setFromCamera(v, this.camera);
+    if (this.npcs?.length) {
+      for (const n of this.npcs) {
+        const hit = this.ray.intersectObject(n.group, true)[0];
+        if (hit) { this.cb.onNpcClick(n.role); return; }
+      }
+    }
     if (this.portal) {
       const hitPortal = this.ray.intersectObject(this.portal, true)[0];
       if (hitPortal) { this.cb.onPortalClick(); return; }
@@ -775,6 +874,13 @@ export class World {
     }
     this.effects = this.effects.filter(f => !f.dead);
 
+    if (this.npcs) for (const n of this.npcs) n.mixer?.update(dt);
+    for (const e of this.players.values()) {
+      if (e.aura) {
+        e.aura.material.opacity = e.auraBase + Math.sin(t * 4) * 0.12;
+        e.aura.material.rotation = t * 0.8;
+      }
+    }
     if (this.portalRing) {
       this.portalRing.rotation.y = t * 1.2;
       this.portalRing.material.emissiveIntensity = 1 + Math.sin(t * 3) * 0.5;

@@ -54,11 +54,10 @@ public class GameHub(WorldState world, WorldService worldService, GameDb db) : H
             Mp = GameConfig.MaxMpFor(ch.Level),
             SkillPoints = ch.SkillPoints,
         };
-        if (ch.EquippedItemId is { } eqId)
-        {
-            var eq = await db.Items.FirstOrDefaultAsync(i => i.Id == eqId);
-            p.WeaponBonus = (eq is null ? null : GameConfig.ItemByCode(eq.ItemCode))?.Bonus ?? 0;
-        }
+        var equippedRows = await db.Items
+            .Where(i => i.CharacterId == ch.Id && i.Equipped).ToListAsync();
+        WorldService.RecalcStats(p, equippedRows.Select(i => (i.ItemCode, i.Plus)));
+        p.Hp = p.MaxHp;
         foreach (var s in await db.Skills.Where(s => s.CharacterId == ch.Id).ToListAsync())
             p.Skills[s.Code] = s.Level;
         var doneQuests = await db.Quests
@@ -263,21 +262,24 @@ public class GameHub(WorldState world, WorldService worldService, GameDb db) : H
     /* ---------------- envanter ---------------- */
     public async Task<object> GetInventory()
     {
-        if (Me is not { } p) return new { items = Array.Empty<object>(), equippedId = (Guid?)null };
-        var ch = await db.Characters.FindAsync(p.CharacterId);
+        if (Me is not { } p) return new { items = Array.Empty<object>() };
         var items = await db.Items.Where(i => i.CharacterId == p.CharacterId).ToListAsync();
         return new
         {
-            equippedId = ch?.EquippedItemId,
             items = items.Select(i =>
             {
                 var def = GameConfig.ItemByCode(i.ItemCode);
                 return new
                 {
                     id = i.Id, code = i.ItemCode, slot = i.SlotIndex, count = i.Count,
+                    plus = i.Plus, equipped = i.Equipped,
                     name = def?.Name ?? i.ItemCode, icon = def?.Icon ?? "❔",
                     desc = def?.Desc ?? "", type = def?.Type ?? "malzeme",
-                    bonus = def?.Bonus ?? 0, healHp = def?.HealHp ?? 0, healMp = def?.HealMp ?? 0,
+                    bonus = GameConfig.Boost(def?.Bonus ?? 0, i.Plus),
+                    defense = GameConfig.Boost(def?.Defense ?? 0, i.Plus),
+                    hpBonus = GameConfig.Boost(def?.HpBonus ?? 0, i.Plus),
+                    healHp = def?.HealHp ?? 0, healMp = def?.HealMp ?? 0,
+                    price = def?.Price ?? 0,
                 };
             }).ToList(),
         };
@@ -302,24 +304,136 @@ public class GameHub(WorldState world, WorldService worldService, GameDb db) : H
         var item = await db.Items.FirstOrDefaultAsync(
             i => i.Id == itemId && i.CharacterId == p.CharacterId);
         var def = item is null ? null : GameConfig.ItemByCode(item.ItemCode);
-        if (def is null || def.Type != "silah") return new { error = "Bu eşya kuşanılamaz." };
-        var ch = await db.Characters.FindAsync(p.CharacterId);
-        ch!.EquippedItemId = item!.Id;
+        if (def is null || !GameConfig.IsEquipType(def.Type))
+            return new { error = "Bu eşya kuşanılamaz." };
+        // aynı türden kuşanılı olanı çıkar
+        var sameType = await db.Items
+            .Where(i => i.CharacterId == p.CharacterId && i.Equipped).ToListAsync();
+        foreach (var other in sameType)
+            if (GameConfig.ItemByCode(other.ItemCode)?.Type == def.Type)
+                other.Equipped = false;
+        item!.Equipped = true;
         await db.SaveChangesAsync();
-        p.WeaponBonus = def.Bonus;
-        worldService.SendStats(p);
-        return new { ok = true, name = def.Name, bonus = def.Bonus };
+        await RecalcAsync(p);
+        return new { ok = true, name = def.Name, plus = item.Plus };
     }
 
-    public async Task Unequip()
+    public async Task<object> Unequip(Guid itemId)
     {
-        if (Me is not { } p) return;
-        var ch = await db.Characters.FindAsync(p.CharacterId);
-        if (ch is null) return;
-        ch.EquippedItemId = null;
+        if (Me is not { } p) return new { error = "oyunda değilsin" };
+        var item = await db.Items.FirstOrDefaultAsync(
+            i => i.Id == itemId && i.CharacterId == p.CharacterId && i.Equipped);
+        if (item is null) return new { error = "Kuşanılı değil." };
+        item.Equipped = false;
         await db.SaveChangesAsync();
-        p.WeaponBonus = 0;
+        await RecalcAsync(p);
+        return new { ok = true };
+    }
+
+    private async Task RecalcAsync(PlayerState p)
+    {
+        var rows = await db.Items
+            .Where(i => i.CharacterId == p.CharacterId && i.Equipped).ToListAsync();
+        WorldService.RecalcStats(p, rows.Select(i => (i.ItemCode, i.Plus)));
         worldService.SendStats(p);
+    }
+
+    private static bool NearNpc(PlayerState p, string role)
+    {
+        foreach (var n in GameConfig.Npcs)
+        {
+            if (n.Role != role || n.MapId != p.MapId) continue;
+            var dx = p.X - n.X; var dz = p.Z - n.Z;
+            if (dx * dx + dz * dz <= 15f * 15f) return true;
+        }
+        return false;
+    }
+
+    /* ---------------- tüccar: al / sat ---------------- */
+    public async Task<object> BuyItem(string code, int count)
+    {
+        if (Me is not { } p) return new { error = "Oyunda değilsin." };
+        if (!NearNpc(p, "tuccar")) return new { error = "Tüccar Hong'a yaklaş." };
+        var def = GameConfig.ItemByCode(code);
+        if (def is null || def.Price <= 0) return new { error = "Bu eşya satılık değil." };
+        count = Math.Clamp(count, 1, 50);
+        var total = def.Price * count;
+        if (p.Yang < total) return new { error = "Yeterli yang'ın yok." };
+        p.Yang -= total;
+        p.Dirty = true;
+        await worldService.PersistLootAsync(p, [(code, count)]);
+        worldService.SendStats(p);
+        return new { ok = true, name = def.Name, count, total };
+    }
+
+    public async Task<object> SellItem(Guid itemId, int count)
+    {
+        if (Me is not { } p) return new { error = "Oyunda değilsin." };
+        if (!NearNpc(p, "tuccar")) return new { error = "Tüccar Hong'a yaklaş." };
+        var item = await db.Items.FirstOrDefaultAsync(
+            i => i.Id == itemId && i.CharacterId == p.CharacterId);
+        var def = item is null ? null : GameConfig.ItemByCode(item.ItemCode);
+        if (item is null || def is null) return new { error = "Eşya yok." };
+        if (item.Equipped) return new { error = "Önce çıkar." };
+        if (def.Price <= 0) return new { error = "Tüccar bunu almıyor (çok değerli!)." };
+        count = Math.Clamp(count, 1, item.Count);
+        var gain = def.Price * 40 / 100 * count;
+        item.Count -= count;
+        if (item.Count <= 0) db.Items.Remove(item);
+        await db.SaveChangesAsync();
+        p.Yang += Math.Max(1, gain);
+        p.Dirty = true;
+        worldService.SendStats(p);
+        return new { ok = true, name = def.Name, count, gain = Math.Max(1, gain) };
+    }
+
+    /* ---------------- demirci: + basma ---------------- */
+    public async Task<object> UpgradeItem(Guid itemId)
+    {
+        if (Me is not { } p) return new { error = "Oyunda değilsin." };
+        if (!NearNpc(p, "demirci")) return new { error = "Demirci Kaya'ya yaklaş." };
+        var item = await db.Items.FirstOrDefaultAsync(
+            i => i.Id == itemId && i.CharacterId == p.CharacterId);
+        var def = item is null ? null : GameConfig.ItemByCode(item.ItemCode);
+        if (item is null || def is null || !GameConfig.IsEquipType(def.Type))
+            return new { error = "Bu eşyaya + basılamaz." };
+        if (item.Plus >= GameConfig.MaxPlus) return new { error = "Zaten +11 (ustalık)." };
+
+        var yangCost = GameConfig.UpgradeYangCost(item.Plus);
+        var shardCost = GameConfig.UpgradeShardCost(item.Plus);
+        if (p.Yang < yangCost) return new { error = $"Yang yetersiz ({yangCost} gerek)." };
+        var shards = await db.Items.FirstOrDefaultAsync(i =>
+            i.CharacterId == p.CharacterId && i.ItemCode == "metin_parcasi");
+        if (shards is null || shards.Count < shardCost)
+            return new { error = $"Metin Parçası yetersiz ({shardCost} gerek)." };
+
+        p.Yang -= yangCost;
+        p.Dirty = true;
+        shards.Count -= shardCost;
+        if (shards.Count <= 0) db.Items.Remove(shards);
+
+        var chance = GameConfig.UpgradeChance[item.Plus];
+        var success = Random.Shared.NextDouble() < chance;
+        if (success)
+        {
+            item.Plus++;
+            if (item.Equipped) { /* statlar aşağıda yeniden hesaplanır */ }
+            if (item.Plus >= 9)
+                await Clients.All.SendAsync("notice", new
+                {
+                    text = $"⚒️ {p.Name}, {def.Name} +{item.Plus} BASTI!" +
+                           (item.Plus >= 11 ? " 🔴 EFSANE!" : ""),
+                });
+        }
+        await db.SaveChangesAsync();
+        await RecalcAsync(p);
+        return new
+        {
+            ok = true, success, plus = item.Plus,
+            name = def.Name, yangCost, shardCost,
+            nextChance = item.Plus < GameConfig.MaxPlus
+                ? GameConfig.UpgradeChance[item.Plus] : 0,
+        };
     }
 
     public override async Task OnDisconnectedAsync(Exception? exception)

@@ -45,6 +45,7 @@ async function startGame() {
       gameConn.invoke('Attack', mobId);
     },
     onPortalClick() { openTeleport(false); },
+    onNpcClick(role) { role === 'tuccar' ? openShop() : openSmith(); },
   });
 
   gameConn = connect('/hubs/game');
@@ -334,32 +335,31 @@ async function refreshInv() {
   invData = await gameConn.invoke('GetInventory');
   const grid = $('inv-grid');
   grid.innerHTML = '';
-  const bySlot = new Map(invData.items
-    .filter(i => i.id !== invData.equippedId)
-    .map(i => [i.slot, i]));
+  const bySlot = new Map(invData.items.filter(i => !i.equipped).map(i => [i.slot, i]));
+  const plusCls = it => it.plus >= 11 ? ' p11' : it.plus >= 10 ? ' p10' : it.plus >= 9 ? ' p9' : '';
+  const badge = it => it.plus > 0 ? `<span class="plus">+${it.plus}</span>` : '';
   for (let s = 0; s < 45; s++) {
     const div = document.createElement('div');
-    div.className = 'inv-slot';
-    div.dataset.slot = s;
     const it = bySlot.get(s);
+    div.className = 'inv-slot' + (it ? plusCls(it) : '');
+    div.dataset.slot = s;
     if (it) {
       div.textContent = it.icon;
-      if (it.type === 'silah') div.classList.add('weapon');
+      div.insertAdjacentHTML('beforeend', badge(it));
       if (it.count > 1) div.insertAdjacentHTML('beforeend', `<span class="cnt">${it.count}</span>`);
       div.dataset.id = it.id;
       div.addEventListener('mouseenter', e => showTip(it, e));
       div.addEventListener('mouseleave', hideTip);
       div.addEventListener('dblclick', async () => {
         hideTip();
-        if (it.type === 'silah') {
+        if (isEquip(it.type)) {
           const r = await gameConn.invoke('Equip', it.id);
           if (r.error) notice(r.error);
-          else notice(`⚔ ${r.name} kuşanıldı (+${r.bonus} saldırı)`);
+          else notice(`⚔ ${it.name}${it.plus ? ' +' + it.plus : ''} kuşanıldı`);
           await refreshInv();
         } else if (it.type === 'iksir') {
           const r = await gameConn.invoke('UseItem', it.id);
-          if (r.error) notice(r.error);
-          else notice(`${it.name} içildi`);
+          if (r.error) notice(r.error); else notice(`${it.name} içildi`);
           await refreshInv();
         } else if (it.type === 'parsomen') {
           openTeleport(true);
@@ -368,14 +368,11 @@ async function refreshInv() {
     }
     div.addEventListener('click', async () => {
       if (pickedItem) {
-        // bırak / taşı
-        const target = parseInt(div.dataset.slot, 10);
-        await gameConn.invoke('MoveItem', pickedItem.id, target);
+        await gameConn.invoke('MoveItem', pickedItem.id, parseInt(div.dataset.slot, 10));
         pickedItem = null;
         ghost.classList.add('hidden');
         await refreshInv();
       } else if (it) {
-        // eline al
         pickedItem = it;
         ghost.textContent = it.icon;
         ghost.classList.remove('hidden');
@@ -384,29 +381,39 @@ async function refreshInv() {
     });
     grid.appendChild(div);
   }
-  // kuşanma yuvası
-  const eq = invData.items.find(i => i.id === invData.equippedId);
-  const slot = $('equip-slot');
-  slot.textContent = eq ? eq.icon : '';
-  $('equip-info').innerHTML = eq
-    ? `<b style="color:var(--gold)">${esc(eq.name)}</b><br><small>+${eq.bonus} saldırı · çıkarmak için çift tıkla</small>`
-    : 'Silah yok<br><small>Silaha çift tıkla → kuşan</small>';
-  slot.ondblclick = async () => {
-    if (!eq) return;
-    await gameConn.invoke('Unequip');
-    notice('Silah çıkarıldı.');
-    await refreshInv();
-  };
+  document.querySelectorAll('#equip-grid .inv-slot').forEach(slot => {
+    const type = slot.dataset.etype;
+    const it = invData.items.find(i => i.equipped && i.type === type);
+    slot.className = 'inv-slot equip' + (it ? plusCls(it) : '');
+    slot.innerHTML = it ? it.icon + badge(it) : '';
+    slot.onmouseenter = it ? (e => showTip(it, e)) : null;
+    slot.onmouseleave = hideTip;
+    slot.ondblclick = it ? (async () => {
+      hideTip();
+      const r = await gameConn.invoke('Unequip', it.id);
+      if (r.error) notice(r.error); else notice(`${it.name} çıkarıldı`);
+      await refreshInv();
+    }) : null;
+  });
   $('inv-yang-val').textContent = (stats?.yang ?? 0).toLocaleString('tr');
   updatePotCounts();
 }
 
+function isEquip(t) {
+  return ['silah', 'zirh', 'kalkan', 'kupe', 'kolye', 'bileklik'].includes(t);
+}
+
 function showTip(it, e) {
   const tip = $('item-tip');
+  const typeNames = { silah: 'Silah', zirh: 'Zırh', kalkan: 'Kalkan', kupe: 'Küpe',
+    kolye: 'Kolye', bileklik: 'Bileklik', iksir: 'İksir', parsomen: 'Parşömen', malzeme: 'Malzeme' };
   tip.innerHTML =
-    `<div class="tname">${it.icon} ${esc(it.name)}</div>` +
-    `<div class="ttype">${it.type === 'silah' ? 'Silah' : 'Malzeme'}${it.count > 1 ? ` · x${it.count}` : ''}</div>` +
+    `<div class="tname">${it.icon} ${esc(it.name)}${it.plus ? ` +${it.plus}` : ''}</div>` +
+    `<div class="ttype">${typeNames[it.type] || it.type}${it.count > 1 ? ` · x${it.count}` : ''}</div>` +
     (it.bonus ? `<div class="tbonus">Saldırı +${it.bonus}</div>` : '') +
+    (it.defense ? `<div class="tbonus">Savunma +${it.defense}</div>` : '') +
+    (it.hpBonus ? `<div class="tbonus">HP +${it.hpBonus}</div>` : '') +
+    (it.price ? `<div class="ttype">Satış: ${Math.floor(it.price * 0.4)} yang</div>` : '') +
     `<div class="tdesc">${esc(it.desc)}</div>`;
   tip.classList.remove('hidden');
   const r = e.currentTarget.getBoundingClientRect();
@@ -424,13 +431,14 @@ function toggleChar() {
 }
 function renderChar() {
   if (!stats) return;
-  const eq = invData?.items.find(i => i.id === invData.equippedId);
+  const eq = invData?.items.find(i => i.equipped && i.type === 'silah');
   $('char-body').innerHTML = `
     <div class="crow"><span>İsim</span><b>${esc(session.username ?? '')}</b></div>
     <div class="crow"><span>Seviye</span><b>${stats.level}</b></div>
     <div class="crow"><span>XP</span><b>${stats.xp} / ${stats.xpNext}</b></div>
     <div class="crow"><span>HP</span><b>${stats.hp} / ${stats.maxHp}</b></div>
-    <div class="crow"><span>Saldırı</span><b>${stats.damage}${eq ? ` <small>(+${eq.bonus} silah)</small>` : ''}</b></div>
+    <div class="crow"><span>Savunma</span><b>${stats.defense ?? 0}</b></div>
+    <div class="crow"><span>Saldırı</span><b>${stats.damage}</b></div>
     <div class="crow"><span>Silah</span><b>${eq ? esc(eq.name) : '—'}</b></div>
     <div class="crow"><span>Yang</span><b>${stats.yang.toLocaleString('tr')}</b></div>`;
 }
@@ -640,6 +648,99 @@ $('story-next').addEventListener('click', () => {
 });
 $('btn-skill').addEventListener('click', () => toggleSkillWin());
 $('btn-quest').addEventListener('click', () => toggleQuestWin());
+
+/* ---------------- Tüccar Hong ---------------- */
+let shopTab = 'buy';
+function openShop() {
+  $('shop-win').classList.remove('hidden');
+  renderShop();
+}
+$('tab-buy').addEventListener('click', () => { shopTab = 'buy'; renderShop(); });
+$('tab-sell').addEventListener('click', () => { shopTab = 'sell'; renderShop(); });
+
+async function renderShop() {
+  $('tab-buy').classList.toggle('on', shopTab === 'buy');
+  $('tab-sell').classList.toggle('on', shopTab === 'sell');
+  const body = $('shop-body');
+  body.innerHTML = '';
+  if (shopTab === 'buy') {
+    for (const it of cfg.items.filter(i => i.price > 0)) {
+      body.insertAdjacentHTML('beforeend', `
+        <div class="shop-row"><span class="ic">${it.icon}</span>
+        <span class="nm">${esc(it.name)}<small>${esc(it.desc)}</small></span>
+        <span class="pr">${it.price.toLocaleString('tr')}</span>
+        <button data-buy="${it.code}" data-n="1">Al</button>
+        <button data-buy="${it.code}" data-n="5">x5</button></div>`);
+    }
+    body.querySelectorAll('[data-buy]').forEach(b => b.onclick = async () => {
+      const r = await gameConn.invoke('BuyItem', b.dataset.buy, parseInt(b.dataset.n, 10));
+      if (r.error) notice(r.error);
+      else notice(`🛒 ${r.name} x${r.count} alındı (-${r.total} yang)`);
+      await refreshInv();
+      renderShop();
+    });
+  } else {
+    await refreshInv();
+    const sellable = invData.items.filter(i => !i.equipped && i.price > 0);
+    if (!sellable.length)
+      body.innerHTML = '<div class="panel-empty">Satılık bir şeyin yok.</div>';
+    for (const it of sellable) {
+      const unit = Math.max(1, Math.floor(it.price * 0.4));
+      body.insertAdjacentHTML('beforeend', `
+        <div class="shop-row"><span class="ic">${it.icon}</span>
+        <span class="nm">${esc(it.name)}${it.plus ? ' +' + it.plus : ''} x${it.count}<small>birim: ${unit} yang</small></span>
+        <button class="sellb" data-sell="${it.id}" data-n="1">Sat</button>
+        <button class="sellb" data-sell="${it.id}" data-n="${it.count}">Hepsi</button></div>`);
+    }
+    body.querySelectorAll('[data-sell]').forEach(b => b.onclick = async () => {
+      const r = await gameConn.invoke('SellItem', b.dataset.sell, parseInt(b.dataset.n, 10));
+      if (r.error) notice(r.error);
+      else notice(`💰 ${r.name} x${r.count} satıldı (+${r.gain} yang)`);
+      await refreshInv();
+      renderShop();
+    });
+  }
+  $('shop-yang-val').textContent = (stats?.yang ?? 0).toLocaleString('tr');
+}
+
+/* ---------------- Demirci Kaya (+ basma) ---------------- */
+function openSmith() {
+  $('smith-win').classList.remove('hidden');
+  renderSmith();
+}
+async function renderSmith() {
+  await refreshInv();
+  const body = $('smith-body');
+  body.innerHTML = '';
+  const gear = invData.items.filter(i => isEquip(i.type));
+  if (!gear.length)
+    body.innerHTML = '<div class="panel-empty">+ basılacak ekipmanın yok.</div>';
+  const chances = cfg.upgradeChance;
+  for (const it of gear) {
+    const maxed = it.plus >= cfg.maxPlus;
+    const yangCost = 200 * (it.plus + 1) * (it.plus + 1);
+    const shardCost = 1 + Math.floor(it.plus / 3);
+    const pct = maxed ? 0 : Math.round(chances[it.plus] * 100);
+    const cls = it.plus >= 11 ? ' p11' : it.plus >= 10 ? ' p10' : it.plus >= 9 ? ' p9' : '';
+    body.insertAdjacentHTML('beforeend', `
+      <div class="smith-row">
+        <span class="slotbox${cls}">${it.icon}${it.plus ? `<span class="plus">+${it.plus}</span>` : ''}</span>
+        <span class="mid"><b>${esc(it.name)}${it.plus ? ' +' + it.plus : ''}</b>${it.equipped ? ' <small>(kuşanılı)</small>' : ''}
+          <div class="cost">${maxed ? 'USTALIK (+11)' :
+            `→ +${it.plus + 1}: ${yangCost.toLocaleString('tr')} yang + ${shardCost} 💎 · şans %${pct}`}</div>
+        </span>
+        <button data-up="${it.id}" ${maxed ? 'disabled' : ''}>+ BAS</button>
+      </div>`);
+  }
+  body.querySelectorAll('[data-up]').forEach(b => b.onclick = async () => {
+    b.disabled = true;
+    const r = await gameConn.invoke('UpgradeItem', b.dataset.up);
+    if (r.error) { notice(r.error); b.disabled = false; return; }
+    if (r.success) notice(`⚒️ BAŞARILI! ${r.name} +${r.plus}${r.plus >= 11 ? ' 🔴' : r.plus >= 9 ? ' ✨' : ''}`);
+    else notice(`💥 Başarısız... malzemeler yandı (${r.name} +${r.plus} kaldı)`);
+    renderSmith();
+  });
+}
 
 /* ---------------- klavye ---------------- */
 addEventListener('keydown', e => {

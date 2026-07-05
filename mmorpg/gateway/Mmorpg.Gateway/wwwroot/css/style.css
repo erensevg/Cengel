@@ -386,3 +386,53 @@ body {
   cursor: pointer; padding: 9px 22px; border: none; border-radius: 8px;
   background: linear-gradient(180deg, #ffe9ad, var(--gold)); color: #241d0a;
 }
+
+/* ---- ekipman yuvaları ---- */
+#equip-grid {
+  display: flex; gap: 6px; justify-content: center; flex-wrap: wrap;
+  padding: 10px 12px; border-bottom: 1px solid rgba(107, 83, 34, .5);
+}
+.inv-slot.equip { width: 40px; height: 40px; font-size: 20px; border-color: #6b5322; }
+.inv-slot .plus {
+  position: absolute; left: 2px; top: 0; font-size: 9px; font-weight: 800;
+  color: #ffe9ad; text-shadow: 0 1px 2px #000;
+}
+.inv-slot.p9  { box-shadow: 0 0 8px rgba(255,255,255,.55), inset 0 0 6px rgba(255,255,255,.25); border-color: #cfd6e4; }
+.inv-slot.p10 { box-shadow: 0 0 12px rgba(232,184,75,.85), inset 0 0 8px rgba(232,184,75,.35); border-color: var(--gold); }
+.inv-slot.p11 { box-shadow: 0 0 16px rgba(255,40,40,.95), inset 0 0 10px rgba(255,40,40,.4); border-color: #ff2828; animation: p11pulse 1.2s infinite; }
+@keyframes p11pulse { 50% { box-shadow: 0 0 26px rgba(255,40,40,1), inset 0 0 12px rgba(255,60,60,.6); } }
+
+/* ---- dükkan / demirci ---- */
+#shop-win { left: 50%; top: 60px; transform: translateX(-50%); width: 360px; max-height: 74vh; display: flex; flex-direction: column; }
+.shop-tabs { margin-left: auto; margin-right: 8px; display: flex; gap: 4px; }
+.shop-tabs button {
+  font: inherit; font-size: 11px; font-weight: 800; cursor: pointer; padding: 4px 12px;
+  border: 1px solid #6b5322; border-radius: 6px; background: transparent; color: #b9a06a;
+}
+.shop-tabs button.on { background: var(--gold); color: #241d0a; }
+#shop-body { padding: 8px 12px; overflow-y: auto; flex: 1; }
+.shop-row { display: flex; align-items: center; gap: 8px; padding: 7px 4px; border-bottom: 1px solid rgba(107,83,34,.3); font-size: 12.5px; }
+.shop-row .ic { font-size: 20px; width: 26px; text-align: center; }
+.shop-row .nm { flex: 1; }
+.shop-row .nm small { display: block; color: #8a7a5c; font-size: 10.5px; }
+.shop-row .pr { color: var(--gold); font-weight: 700; margin-right: 4px; }
+.shop-row button {
+  font: inherit; font-size: 11px; font-weight: 700; cursor: pointer;
+  padding: 5px 9px; border: none; border-radius: 6px;
+  background: linear-gradient(180deg, #ffe9ad, var(--gold)); color: #241d0a;
+}
+.shop-row button.sellb { background: linear-gradient(180deg, #b8d8ff, #4ba3e8); }
+#shop-yang { padding: 8px 12px; border-top: 1px solid rgba(107,83,34,.5); color: var(--gold); font-weight: 700; font-size: 13px; text-align: right; }
+#smith-win { left: 50%; top: 60px; transform: translateX(-50%); width: 380px; max-height: 74vh; display: flex; flex-direction: column; }
+#smith-note { padding: 8px 14px; font-size: 11px; color: #b9a988; border-bottom: 1px solid rgba(107,83,34,.4); }
+#smith-body { padding: 8px 12px; overflow-y: auto; flex: 1; }
+.smith-row { display: flex; align-items: center; gap: 8px; padding: 8px 4px; border-bottom: 1px solid rgba(107,83,34,.3); font-size: 12.5px; }
+.smith-row .slotbox { position: relative; width: 40px; height: 40px; flex: none; display: flex; align-items: center; justify-content: center; font-size: 20px; background: #17130c; border: 1px solid #4a3b1c; border-radius: 4px; }
+.smith-row .mid { flex: 1; }
+.smith-row .cost { font-size: 11px; color: #8fa1d8; }
+.smith-row button {
+  font: inherit; font-size: 12px; font-weight: 800; cursor: pointer;
+  padding: 7px 12px; border: none; border-radius: 6px;
+  background: linear-gradient(180deg, #ffb27a, #e8742b); color: #241005;
+}
+.smith-row button:disabled { background: #3a3326; color: #7a6c4c; }

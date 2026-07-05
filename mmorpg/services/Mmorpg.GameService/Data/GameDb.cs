@@ -16,7 +16,6 @@ public class Character
     public int SkillPoints { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime LastSeenAt { get; set; }
-    public Guid? EquippedItemId { get; set; }
 }
 
 public class InventoryItem
@@ -26,6 +25,8 @@ public class InventoryItem
     public string ItemCode { get; set; } = "";
     public int Count { get; set; }
     public int SlotIndex { get; set; } = -1;   // çanta ızgarasındaki yeri (0-44)
+    public int Plus { get; set; }              // yükseltme (+0..+11)
+    public bool Equipped { get; set; }
 }
 
 public class CharacterSkill
