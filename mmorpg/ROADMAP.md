@@ -62,6 +62,20 @@ Test kancası: tarayıcı konsolunda `window.__mmo()`.
 Bilinen kısıt: görev İLERLEMESİ (progress) yeniden girişte sıfırlanır (yalnızca
 tamamlanan görevler DB'de); CharacterQuest.Progress alanına periyodik yazım eklenebilir.
 
+## EKONOMİ GÜNCELLEMESİ ✅
+
+- Köy NPC'leri (3 haritada): Tüccar Hong (AL/SAT; malzeme-ekipman satışı %40) ve
+  Demirci Kaya (+ basma) — BuyItem/SellItem/UpgradeItem hub metodları, yakınlık şartı
+- Ekipman: zırh/kalkan/küpe/kolye/bileklik + savunma (mob hasarı 100/(100+def)) +
+  HP bonusu; 6 yuvalı kuşanma; RecalcStats
+- Yükseltme +11'e kadar: yang 200*(p+1)^2 + Metin Parçası; şans %100→%10;
+  +9 beyaz / +10 altın / +11 KIRMIZI aura (GlowTier snapshot) + envanter parlaması;
+  +9 üstü sunucu duyurusu
+- Ultra nadir metin dropları: Ejder Kılıcı 1/3M, Ejderin Gözyaşı 1/1M,
+  Kadim Bileklik 1/250k — düşünce dünya geneli duyuru
+- Test edildi: al/sat, 3 parça kuşanma (saldırı/savunma/HP artışı), +11'e basma,
+  kırmızı aura — Playwright ile doğrulandı
+
 ## YAPILACAK — öncelik sırasıyla 🔜
 
 1. **Karakter sınıfları** (Savaşçı/Ninja/Sura/Şaman): `Character`'a `ClassType`
