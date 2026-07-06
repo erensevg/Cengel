@@ -351,8 +351,15 @@ public class GameHub(WorldState world, WorldService worldService, GameDb db) : H
         {
             if (n.Role != role || n.MapId != p.MapId) continue;
             var dx = p.X - n.X; var dz = p.Z - n.Z;
-            if (dx * dx + dz * dz <= 15f * 15f) return true;
+            if (dx * dx + dz * dz <= 7f * 7f) return true;
         }
+        return false;
+    }
+
+    private static readonly string[] ShopRoles = ["tuccar", "silahci", "zirhci", "iksirci"];
+    private static bool NearAnyShop(PlayerState p)
+    {
+        foreach (var r in ShopRoles) if (NearNpc(p, r)) return true;
         return false;
     }
 
@@ -360,9 +367,11 @@ public class GameHub(WorldState world, WorldService worldService, GameDb db) : H
     public async Task<object> BuyItem(string code, int count)
     {
         if (Me is not { } p) return new { error = "Oyunda değilsin." };
-        if (!NearNpc(p, "tuccar")) return new { error = "Tüccar Hong'a yaklaş." };
         var def = GameConfig.ItemByCode(code);
         if (def is null || def.Price <= 0) return new { error = "Bu eşya satılık değil." };
+        var role = GameConfig.ShopRoleFor(def.Type);
+        if (!NearNpc(p, role))
+            return new { error = $"{GameConfig.NpcRoleName(role)}'a yaklaş." };
         count = Math.Clamp(count, 1, 50);
         var total = def.Price * count;
         if (p.Yang < total) return new { error = "Yeterli yang'ın yok." };
@@ -376,7 +385,7 @@ public class GameHub(WorldState world, WorldService worldService, GameDb db) : H
     public async Task<object> SellItem(Guid itemId, int count)
     {
         if (Me is not { } p) return new { error = "Oyunda değilsin." };
-        if (!NearNpc(p, "tuccar")) return new { error = "Tüccar Hong'a yaklaş." };
+        if (!NearAnyShop(p)) return new { error = "Bir tüccara yaklaş." };
         var item = await db.Items.FirstOrDefaultAsync(
             i => i.Id == itemId && i.CharacterId == p.CharacterId);
         var def = item is null ? null : GameConfig.ItemByCode(item.ItemCode);

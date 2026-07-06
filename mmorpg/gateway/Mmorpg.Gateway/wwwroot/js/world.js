@@ -361,7 +361,10 @@ export class World {
     // köy NPC'leri + kulübeler
     if (this.npcs) for (const n of this.npcs) this.scene.remove(n.group);
     this.npcs = [];
-    const npcModel = { demirci: 1, tuccar: 3 };   // Barbarian, Mage
+    // rol -> karakter modeli (Knight0/Barbarian1/Rogue2/Mage3)
+    const npcModel = { demirci: 1, silahci: 0, zirhci: 1, tuccar: 3, iksirci: 2, at_tuccari: 0 };
+    const npcEmoji = { demirci: '⚒️ ', silahci: '⚔️ ', zirhci: '🛡️ ',
+                       tuccar: '💰 ', iksirci: '🧪 ', at_tuccari: '🐎 ' };
     for (const npc of (this.cfg.npcs || []).filter(n => n.mapId === mapDef.id)) {
       const grp = new THREE.Group();
       let clickMesh;
@@ -383,7 +386,7 @@ export class World {
         grp.add(clickMesh);
         this.npcs.push({ group: grp, role: npc.role });
       }
-      const lbl = makeLabel((npc.role === 'demirci' ? '⚒️ ' : '💰 ') + npc.name, '#ffd76e', 26);
+      const lbl = makeLabel((npcEmoji[npc.role] ?? '💰 ') + npc.name, '#ffd76e', 26);
       lbl.position.y = 2.7;
       grp.add(lbl);
       grp.position.set(npc.x, groundH(npc.x, npc.z), npc.z);

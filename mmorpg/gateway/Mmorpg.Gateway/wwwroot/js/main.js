@@ -45,7 +45,10 @@ async function startGame() {
       gameConn.invoke('Attack', mobId);
     },
     onPortalClick() { openTeleport(false); },
-    onNpcClick(role) { role === 'tuccar' ? openShop() : openSmith(); },
+    onNpcClick(role) {
+      if (role === 'demirci') openSmith();
+      else openShop(role);
+    },
   });
 
   gameConn = connect('/hubs/game');
@@ -700,9 +703,25 @@ $('story-next').addEventListener('click', () => {
 $('btn-skill').addEventListener('click', () => toggleSkillWin());
 $('btn-quest').addEventListener('click', () => toggleQuestWin());
 
-/* ---------------- Tüccar Hong ---------------- */
+/* ---------------- Dükkânlar (silahçı / zırhçı / iksirci / tüccar) ---------------- */
 let shopTab = 'buy';
-function openShop() {
+let shopRole = 'tuccar';
+const SHOP_INFO = {
+  silahci: { title: '⚔️ SILAHÇI DEMİR', buy: true },
+  zirhci:  { title: '🛡️ ZIRHÇI TUNÇ', buy: true },
+  iksirci: { title: '🧪 İKSİRCİ MEI', buy: true },
+  tuccar:  { title: '💰 TÜCCAR HONG', buy: true },
+};
+function shopRoleFor(type) {
+  if (type === 'silah') return 'silahci';
+  if (['zirh', 'kalkan', 'kupe', 'kolye', 'bileklik'].includes(type)) return 'zirhci';
+  if (['iksir', 'parsomen'].includes(type)) return 'iksirci';
+  return 'tuccar';
+}
+function openShop(role = 'tuccar') {
+  shopRole = SHOP_INFO[role] ? role : 'tuccar';
+  shopTab = 'buy';
+  $('shop-title').textContent = SHOP_INFO[shopRole].title;
   $('shop-win').classList.remove('hidden');
   renderShop();
 }
@@ -715,7 +734,10 @@ async function renderShop() {
   const body = $('shop-body');
   body.innerHTML = '';
   if (shopTab === 'buy') {
-    for (const it of cfg.items.filter(i => i.price > 0)) {
+    const forSale = cfg.items.filter(i => i.price > 0 && shopRoleFor(i.type) === shopRole);
+    if (!forSale.length)
+      body.innerHTML = '<div class="panel-empty">Bu tüccar yalnızca eşya alır (SAT sekmesi).</div>';
+    for (const it of forSale) {
       body.insertAdjacentHTML('beforeend', `
         <div class="shop-row"><span class="ic">${it.icon}</span>
         <span class="nm">${esc(it.name)}<small>${esc(it.desc)}</small></span>

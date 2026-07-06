@@ -351,16 +351,41 @@ public static class GameConfig
             2000, 1500, "buz_kilici", 1, 2),
     ];
 
-    /// <summary>Köy NPC'leri (tüm haritalarda spawn yanında).</summary>
-    public static readonly NpcDef[] Npcs =
-    [
-        new("demirci", "Demirci Kaya", "demirci", "dogu", -7f, -3f),
-        new("tuccar", "Tüccar Hong", "tuccar", "dogu", -3f, 1f),
-        new("demirci_col", "Demirci Kaya", "demirci", "col", -7f, -3f),
-        new("tuccar_col", "Tüccar Hong", "tuccar", "col", -3f, 1f),
-        new("demirci_zirve", "Demirci Kaya", "demirci", "zirve", -7f, -3f),
-        new("tuccar_zirve", "Tüccar Hong", "tuccar", "zirve", -3f, 1f),
-    ];
+    /// <summary>Köy NPC'leri — her haritada spawn (0,-6) çevresinde bir meydan.</summary>
+    public static readonly NpcDef[] Npcs = BuildNpcs();
+    private static NpcDef[] BuildNpcs()
+    {
+        // (rol, ad, dx, dz) — köy meydanı yerleşimi
+        // Geniş bir meydan: NPC'ler ≥13 birim aralıklı (yakınlık yarıçapı 7 ile
+        // her dükkân ayrı — yanlış dükkândan alım engellensin).
+        (string role, string name, float x, float z)[] layout =
+        [
+            ("demirci",  "Demirci Kaya",  -18f,  6f),
+            ("silahci",  "Silahçı Demir", -12f, -6f),
+            ("zirhci",   "Zırhçı Tunç",     0f, 10f),
+            ("tuccar",   "Tüccar Hong",    12f, -6f),
+            ("iksirci",  "İksirci Mei",    18f,  6f),
+        ];
+        var list = new List<NpcDef>();
+        foreach (var map in new[] { "dogu", "col", "zirve" })
+            foreach (var (role, name, x, z) in layout)
+                list.Add(new NpcDef($"{role}_{map}", name, role, map, x, z));
+        return list.ToArray();
+    }
+
+    /// <summary>Hangi eşya türü hangi dükkânda satılır (Al).</summary>
+    public static string ShopRoleFor(string type) => type switch
+    {
+        "silah" => "silahci",
+        "zirh" or "kalkan" or "kupe" or "kolye" or "bileklik" => "zirhci",
+        "iksir" or "parsomen" => "iksirci",
+        _ => "tuccar",
+    };
+    public static string NpcRoleName(string role) => role switch
+    {
+        "silahci" => "Silahçı Demir", "zirhci" => "Zırhçı Tunç",
+        "iksirci" => "İksirci Mei", "demirci" => "Demirci Kaya", _ => "Tüccar Hong",
+    };
 
     /// <summary>+N başarı şansı (indeks = mevcut +). +9:%20, +10:%15, +11:%10.</summary>
     public static readonly double[] UpgradeChance =
