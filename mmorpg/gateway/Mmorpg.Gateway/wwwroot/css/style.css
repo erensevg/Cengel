@@ -93,6 +93,21 @@ body {
 }
 #map-legend { margin-top: 10px; font-size: 11px; color: #a9b6cc; }
 
+#stable-win { width: 340px; }
+.stable-row {
+  background: rgba(255,255,255,.04); border: 1px solid var(--line); border-radius: 10px;
+  padding: 11px 13px; margin-bottom: 10px;
+}
+.stable-t { font-weight: 700; font-size: 14px; margin-bottom: 3px; }
+.stable-d { font-size: 11px; color: #a9b6cc; margin-bottom: 7px; }
+.stable-cost { font-size: 12px; margin-bottom: 8px; color: #cfe0b0; }
+.stable-cost.bad { color: #e5484d; }
+.stable-row button {
+  width: 100%; padding: 8px; border-radius: 8px; border: 1px solid var(--gold);
+  background: rgba(224,168,50,.16); color: #ffe9ad; font-weight: 700; cursor: pointer;
+}
+.stable-row button:disabled { opacity: .45; cursor: default; border-color: var(--line); color: #8b97ad; }
+
 #notices {
   position: absolute; top: 70px; left: 50%; transform: translateX(-50%);
   display: flex; flex-direction: column; align-items: center; gap: 4px;

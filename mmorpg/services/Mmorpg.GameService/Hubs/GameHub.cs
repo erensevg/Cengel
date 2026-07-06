@@ -53,6 +53,7 @@ public class GameHub(WorldState world, WorldService worldService, GameDb db) : H
             MaxMp = GameConfig.MaxMpFor(ch.Level),
             Mp = GameConfig.MaxMpFor(ch.Level),
             SkillPoints = ch.SkillPoints,
+            HasHorse = ch.HasHorse, HorseArmored = ch.HorseArmored,
         };
         var equippedRows = await db.Items
             .Where(i => i.CharacterId == ch.Id && i.Equipped).ToListAsync();
@@ -450,6 +451,59 @@ public class GameHub(WorldState world, WorldService worldService, GameDb db) : H
             nextChance = item.Plus < GameConfig.MaxPlus
                 ? GameConfig.UpgradeChance[item.Plus] : 0,
         };
+    }
+
+    /* ---------------- binek (at) ---------------- */
+    public async Task<object> BuyHorse()
+    {
+        if (Me is not { } p) return new { error = "Oyunda değilsin." };
+        if (!NearNpc(p, "at_tuccari")) return new { error = "Seyis Bulut'a yaklaş." };
+        if (p.HasHorse) return new { error = "Zaten bir atın var." };
+        var med = await db.Items.FirstOrDefaultAsync(
+            i => i.CharacterId == p.CharacterId && i.ItemCode == "at_madalyonu");
+        var have = med?.Count ?? 0;
+        if (have < GameConfig.HorseMedallionCost)
+            return new { error = $"At Madalyonu yetersiz ({have}/{GameConfig.HorseMedallionCost})." };
+        med!.Count -= GameConfig.HorseMedallionCost;
+        if (med.Count <= 0) db.Items.Remove(med);
+        var ch = await db.Characters.FirstAsync(c => c.Id == p.CharacterId);
+        ch.HasHorse = true; p.HasHorse = true;
+        await db.SaveChangesAsync();
+        await Clients.All.SendAsync("notice", new { text = $"🐎 {p.Name} bir at satın aldı!" });
+        worldService.SendStats(p);
+        return new { ok = true };
+    }
+
+    public async Task<object> ArmorHorse()
+    {
+        if (Me is not { } p) return new { error = "Oyunda değilsin." };
+        if (!NearNpc(p, "at_tuccari")) return new { error = "Seyis Bulut'a yaklaş." };
+        if (!p.HasHorse) return new { error = "Önce bir at al." };
+        if (p.HorseArmored) return new { error = "Atın zaten zırhlı." };
+        var spark = await db.Items.FirstOrDefaultAsync(
+            i => i.CharacterId == p.CharacterId && i.ItemCode == "kivilcim");
+        var have = spark?.Count ?? 0;
+        if (have < GameConfig.HorseArmorSparkCost)
+            return new { error = $"Kıvılcım yetersiz ({have}/{GameConfig.HorseArmorSparkCost})." };
+        spark!.Count -= GameConfig.HorseArmorSparkCost;
+        if (spark.Count <= 0) db.Items.Remove(spark);
+        var ch = await db.Characters.FirstAsync(c => c.Id == p.CharacterId);
+        ch.HorseArmored = true; p.HorseArmored = true;
+        await db.SaveChangesAsync();
+        await Clients.All.SendAsync("notice", new { text = $"🛡️🐎 {p.Name} atını zırhladı!" });
+        worldService.SendStats(p);
+        return new { ok = true };
+    }
+
+    public object ToggleMount()
+    {
+        if (Me is not { } p) return new { error = "Oyunda değilsin." };
+        if (!p.HasHorse) return new { error = "Atın yok. Seyis Bulut'tan al." };
+        if (p.Dead) return new { error = "Ölüyken binemezsin." };
+        p.Mounted = !p.Mounted;
+        p.Dirty = true;
+        worldService.SendStats(p);
+        return new { ok = true, mounted = p.Mounted };
     }
 
     public override async Task OnDisconnectedAsync(Exception? exception)

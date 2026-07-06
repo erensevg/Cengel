@@ -47,6 +47,7 @@ async function startGame() {
     onPortalClick() { openTeleport(false); },
     onNpcClick(role) {
       if (role === 'demirci') openSmith();
+      else if (role === 'at_tuccari') openStable();
       else openShop(role);
     },
   });
@@ -111,6 +112,7 @@ function wireGameEvents() {
     $('pf-yang').textContent = `${s.yang.toLocaleString('tr')} Yang`;
     $('xp-strip').style.width = `${ratio * 100}%`;
     if (!$('char-win').classList.contains('hidden')) renderChar();
+    if (!$('stable-win').classList.contains('hidden')) renderStable();
   });
   gameConn.on('loot', l => {
     let msg = `+${l.yang} Yang`;
@@ -656,6 +658,63 @@ async function doTeleport(mapId, viaScroll) {
   await refreshInv().catch(() => {});
 }
 
+/* ---------------- Ahır (Seyis Bulut) ---------------- */
+async function openStable() {
+  $('stable-win').classList.remove('hidden');
+  await refreshInv().catch(() => {});
+  renderStable();
+}
+function invCount(code) {
+  return (invData?.items || []).filter(i => i.code === code)
+    .reduce((s, i) => s + i.count, 0);
+}
+function renderStable() {
+  const med = invCount('at_madalyonu'), spark = invCount('kivilcim');
+  const hasHorse = stats?.hasHorse, armored = stats?.horseArmored, mounted = stats?.mounted;
+  const MED = 30, SPARK = 100;
+  let html = '';
+  if (!hasHorse) {
+    const ok = med >= MED;
+    html += `<div class="stable-row">
+      <div class="stable-t">🐎 At Satın Al</div>
+      <div class="stable-d">Bir at, dünyada çok daha hızlı gezmeni sağlar.</div>
+      <div class="stable-cost ${ok ? '' : 'bad'}">🎗️ At Madalyonu: ${med} / ${MED}</div>
+      <button id="btn-buy-horse" ${ok ? '' : 'disabled'}>SATIN AL (${MED} madalyon)</button>
+    </div>`;
+  } else {
+    html += `<div class="stable-row">
+      <div class="stable-t">🐎 Atın hazır${armored ? ' · 🛡️ zırhlı' : ''}</div>
+      <div class="stable-d">Hız: ${armored ? '+%90' : '+%60'}. ${mounted ? 'Şu an binilisin.' : 'Yerde.'}</div>
+      <button id="btn-mount">${mounted ? 'İN' : 'BİN'} (H)</button>
+    </div>`;
+    if (!armored) {
+      const ok = spark >= SPARK;
+      html += `<div class="stable-row">
+        <div class="stable-t">🛡️ Atı Zırhla</div>
+        <div class="stable-d">Zırhlı at daha hızlı ve görkemli.</div>
+        <div class="stable-cost ${ok ? '' : 'bad'}">🔥 Kıvılcım: ${spark} / ${SPARK}</div>
+        <button id="btn-armor-horse" ${ok ? '' : 'disabled'}>ZIRHLA (${SPARK} kıvılcım)</button>
+      </div>`;
+    }
+  }
+  $('stable-body').innerHTML = html;
+  const bh = $('btn-buy-horse'); if (bh) bh.onclick = async () => {
+    const r = await gameConn.invoke('BuyHorse');
+    notice(r.error || '🐎 At satın alındı!'); await refreshInv().catch(() => {}); renderStable();
+  };
+  const ba = $('btn-armor-horse'); if (ba) ba.onclick = async () => {
+    const r = await gameConn.invoke('ArmorHorse');
+    notice(r.error || '🛡️ At zırhlandı!'); await refreshInv().catch(() => {}); renderStable();
+  };
+  const bm = $('btn-mount'); if (bm) bm.onclick = () => toggleMount();
+}
+async function toggleMount() {
+  const r = await gameConn.invoke('ToggleMount');
+  if (r.error) { notice(r.error); return; }
+  notice(r.mounted ? '🐎 Ata bindin' : '🚶 Attan indin');
+  if (!$('stable-win').classList.contains('hidden')) renderStable();
+}
+
 /* ---------------- görev takipçisi + günlük + hikaye ---------------- */
 function setQuest(q) {
   quest = q;
@@ -825,6 +884,7 @@ addEventListener('keydown', e => {
   if (k === 'k') { toggleSkillWin(); return; }
   if (k === 'j') { toggleQuestWin(); return; }
   if (k === 'm') { toggleMap(); return; }
+  if (k === 'h') { if (stats?.hasHorse) toggleMount(); return; }
   if (e.key >= '1' && e.key <= '4') {
     const el = $(`qs-${e.key}`);
     if (el?.dataset.skill) castSkill(el.dataset.skill);

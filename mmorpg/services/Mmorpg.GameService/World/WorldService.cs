@@ -101,7 +101,7 @@ public class WorldService(
             {
                 var dx = tx - p.X; var dz = tz - p.Z;
                 var d = MathF.Sqrt(dx * dx + dz * dz);
-                var step = GameConfig.PlayerSpeed * dt;
+                var step = p.Speed * dt;
                 if (d <= step) { p.X = tx; p.Z = tz; p.TargetX = p.TargetZ = null; }
                 else { p.X += dx / d * step; p.Z += dz / d * step; }
                 p.X = Math.Clamp(p.X, -GameConfig.WorldHalf, GameConfig.WorldHalf);
@@ -252,6 +252,22 @@ public class WorldService(
                               $"({GameConfig.MapById(map.Id)!.Name})");
                 }
             }
+
+        // binek malzemeleri — canavarlardan zor düşer (merkezî tablo)
+        if (!mob.Def.Metin)
+        {
+            if (Rng.NextDouble() < GameConfig.MedallionDropChance(mob.Def))
+                drops.Add(("at_madalyonu", 1));
+            // kıvılcım: çöl yılanı/akrebi binde bir; kum patronu/metini daha cömert
+            var sparkChance = mob.Def.Code switch
+            {
+                "col_yilani" or "col_akrebi" => 0.001,
+                "kum_firavunu" => 0.03,
+                _ => 0.0,
+            };
+            if (sparkChance > 0 && Rng.NextDouble() < sparkChance)
+                drops.Add(("kivilcim", 1));
+        }
 
         GainXp(p, mob.Def.Xp);
         p.Dirty = true;
@@ -475,6 +491,7 @@ public class WorldService(
             hp = p.Hp, maxHp = p.MaxHp, mp = p.Mp, maxMp = p.MaxMp,
             damage = p.Damage, yang = p.Yang, defense = p.Defense,
             skillPoints = p.SkillPoints, buff = p.BuffActive,
+            hasHorse = p.HasHorse, horseArmored = p.HorseArmored, mounted = p.Mounted,
         });
 
     public async Task PersistLootAsync(PlayerState p, List<(string code, int count)> drops)
@@ -545,6 +562,7 @@ public class WorldService(
                 ch.Level = p.Level; ch.Xp = p.Xp; ch.Yang = p.Yang;
                 ch.PosX = p.X; ch.PosZ = p.Z; ch.MapId = p.MapId;
                 ch.SkillPoints = p.SkillPoints;
+                ch.HasHorse = p.HasHorse; ch.HorseArmored = p.HorseArmored;
                 ch.LastSeenAt = DateTime.UtcNow;
                 p.Dirty = false;
             }

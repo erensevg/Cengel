@@ -109,7 +109,26 @@ tamamlanan görevler DB'de); CharacterQuest.Progress alanına periyodik yazım e
 - Test edildi: al/sat, 3 parça kuşanma (saldırı/savunma/HP artışı), +11'e basma,
   kırmızı aura — Playwright ile doğrulandı
 
+## DÜNYA ZENGİNLEŞTİRME ✅ (harita/dükkân/binek/harita ekranı)
+
+- **DB SQL Server LocalDB**; `USE_SQLITE=1` ile Linux/CI testi (iki sağlayıcı da referanslı).
+- **Büyük harita**: WorldHalf 100→160; spawn'lar bölgelere yayıldı (köyden uzaklaştıkça
+  seviye artar, boss'lar uzak köşelerde). M tuşu tam ekran harita (köy/kapı/canavar/
+  metin/boss/oyuncu). Hedef can barı üst-ortada (isim·Sv, HP değeri).
+- **Paralı ışınlanma** (300+reqLevel*200 yang) + **ölümde %1 XP kaybı** (seviye düşmez).
+- **Köy dükkânları ayrıldı**: Demirci (+basma), Silahçı (silah), Zırhçı (zırh/kalkan/takı),
+  Tüccar (genel alım/satım), İksirci (iksir/parşömen), Seyis (at). NPC ≥13 birim aralıklı,
+  yakınlık yarıçapı 7. Sunucu `ShopRoleFor(type)` ile doğru dükkânda alım.
+- **Binek (at)**: `at_madalyonu` (canavarlardan zor; boss %35, normal ~%2-6) 30 tane → at;
+  `kivilcim` (çöl yılanı/akrebi 1/1000; Kum Metini cömert) 100 tane → zırhlı at.
+  Hız binekte +%60, zırhlı +%90. Seyis Bulut'ta Ahır penceresi (al/zırhla/bin);
+  H tuşu bin/in; prosedürel at meshi + oyuncu yükselir. Character.HasHorse/HorseArmored.
+
 ## YAPILACAK — öncelik sırasıyla 🔜
+
+0. **PvP düello + oyuncular arası ticaret + oyuncu pazarı** (sıradaki büyük iş):
+   düello isteği→kabul→HitPlayer; ticaret penceresi (item+yang takas); pazar
+   tezgahı (pazar itemi al → kişisel satıcı moduna geç). Epic 1/10000 drop katmanı.
 
 1. **Karakter sınıfları** (Savaşçı/Ninja/Sura/Şaman): `Character`'a `ClassType`
    ekle; `GameConfig`'e sınıf başına stat/katsayı; istemcide sınıf seçim ekranı

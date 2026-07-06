@@ -125,7 +125,21 @@ public static class GameConfig
         // bileklik
         new("gumus_bileklik", "Gümüş Bileklik", "⚪", "Hafif ama sağlam.", "bileklik", Defense: 4, HpBonus: 35, Price: 900),
         new("ruh_bilekligi", "Ruh Bilekliği", "🔗", "Ruh zinciriyle güçlenir.", "bileklik", 6, Defense: 12, HpBonus: 70),
+
+        // ── binek malzemeleri (NPC satmaz — canavarlardan zor düşer) ──
+        new("at_madalyonu", "At Madalyonu", "🎗️", "30 tanesi bir at eder. Canavarlardan çok zor düşer."),
+        new("kivilcim", "Kıvılcım", "🔥", "Atı zırhlamak için 100 tane gerek. Çöl yılanlarından binde bir düşer."),
     ];
+
+    // Binek: fiyatlar (madalyon/kıvılcım adedi)
+    public const int HorseMedallionCost = 30;
+    public const int HorseArmorSparkCost = 100;
+
+    /// <summary>At Madalyonu düşme şansı — normal canavarda düşük, patronda yüksek.</summary>
+    public static double MedallionDropChance(MobDef m) =>
+        m.Code is "kemik_lordu" or "kum_firavunu" or "ejder_ruhu"
+            ? 0.35
+            : 0.02 + m.Level * 0.002;
 
     public static readonly MobDef[] Mobs =
     [
@@ -221,7 +235,7 @@ public static class GameConfig
              new("zaman_kolyesi", 1.0 / 500_000, 1)], 120f, 1.9f),
         new("metin_kum", "Kum Metini", true, 8, 1500, 0, 0f, 0f, 0f, 0f,
             880, 380, 660,
-            [new("metin_parcasi", 1, 4), new("firavun_altini", 1, 3),
+            [new("metin_parcasi", 1, 4), new("firavun_altini", 1, 3), new("kivilcim", .8, 3),
              new("buyuk_hp_iksiri", .7, 2), new("isinlanma_parsomeni", .6, 1),
              new("firavun_asasi", .12, 1), new("firavun_zirhi", .08, 1),
              new("ejder_kilici", 1.0 / 3_000_000, 1),
@@ -360,11 +374,12 @@ public static class GameConfig
         // her dükkân ayrı — yanlış dükkândan alım engellensin).
         (string role, string name, float x, float z)[] layout =
         [
-            ("demirci",  "Demirci Kaya",  -18f,  6f),
-            ("silahci",  "Silahçı Demir", -12f, -6f),
-            ("zirhci",   "Zırhçı Tunç",     0f, 10f),
-            ("tuccar",   "Tüccar Hong",    12f, -6f),
-            ("iksirci",  "İksirci Mei",    18f,  6f),
+            ("demirci",    "Demirci Kaya",  -18f,  6f),
+            ("silahci",    "Silahçı Demir", -12f, -6f),
+            ("zirhci",     "Zırhçı Tunç",     0f, 10f),
+            ("tuccar",     "Tüccar Hong",    12f, -6f),
+            ("iksirci",    "İksirci Mei",    18f,  6f),
+            ("at_tuccari", "Seyis Bulut",    26f, -4f),
         ];
         var list = new List<NpcDef>();
         foreach (var map in new[] { "dogu", "col", "zirve" })

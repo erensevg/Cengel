@@ -33,6 +33,14 @@ public class PlayerState
     public float BuffMult = 1f;
     public int QuestIndex;      // kaçıncı görevde (tamamlanan sayısı)
     public int QuestProgress;
+    public bool HasHorse;       // at satın alındı mı
+    public bool HorseArmored;   // at zırhlandı mı (kıvılcım)
+    public bool Mounted;        // şu an ata binili mi
+
+    /// <summary>Hareket hızı — ata binince hızlanır (zırhlıysa biraz daha).</summary>
+    public float Speed => Mounted
+        ? GameConfig.PlayerSpeed * (HorseArmored ? 1.9f : 1.6f)
+        : GameConfig.PlayerSpeed;
 
     public int Damage
     {
@@ -126,6 +134,7 @@ public class WorldState
                 id = p.CharacterId, name = p.Name, x = p.X, z = p.Z,
                 hp = p.Hp, maxHp = p.MaxHp, level = p.Level, dead = p.Dead,
                 moving = p.TargetX.HasValue, buff = p.BuffActive, glow = p.GlowTier,
+                mounted = p.Mounted, horseArmored = p.HorseArmored,
             }),
             mobs = map.Mobs.Values.Where(m => !m.Dead).Select(m => new
             {

@@ -14,6 +14,8 @@ public class Character
     public float PosZ { get; set; }
     public string MapId { get; set; } = "dogu";
     public int SkillPoints { get; set; }
+    public bool HasHorse { get; set; }
+    public bool HorseArmored { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime LastSeenAt { get; set; }
 }

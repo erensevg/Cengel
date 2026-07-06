@@ -462,6 +462,36 @@ export class World {
     }
   }
 
+  // ata bin/in: basit prosedürel at meshi + oyuncuyu yukarı kaldır
+  setMounted(e, on) {
+    if (!!e.mounted === on) return;
+    e.mounted = on;
+    if (on) {
+      const horse = new THREE.Group();
+      const bodyC = e.horseArmored ? 0x556074 : 0x6b4a2e;
+      const mat = new THREE.MeshStandardMaterial({ color: bodyC, roughness: .8 });
+      const dark = new THREE.MeshStandardMaterial({ color: 0x2a1d12, roughness: .9 });
+      const body = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.7, 1.7), mat);
+      body.position.y = 1.0; body.castShadow = true; horse.add(body);
+      const neck = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.7, 0.4), mat);
+      neck.position.set(0, 1.35, 0.85); neck.rotation.x = -0.5; horse.add(neck);
+      const head = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.35, 0.6), mat);
+      head.position.set(0, 1.7, 1.15); horse.add(head);
+      for (const [lx, lz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
+        const leg = new THREE.Mesh(new THREE.BoxGeometry(0.16, 1.0, 0.16), dark);
+        leg.position.set(lx * 0.26, 0.5, lz * 0.6); leg.castShadow = true; horse.add(leg);
+      }
+      const tail = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.5, 0.12), dark);
+      tail.position.set(0, 1.0, -0.95); tail.rotation.x = 0.6; horse.add(tail);
+      e.horse = horse;
+      e.group.add(horse);
+      if (e.model) e.model.position.y = 1.4;
+    } else {
+      if (e.horse) { e.group.remove(e.horse); e.horse = null; }
+      if (e.model) e.model.position.y = 0;
+    }
+  }
+
   /* ---------------- skill efektleri ---------------- */
   skillFx(code, x, z, targetIds) {
     const colors = { guclu_vurus: 0xff5b4d, kasirga: 0x63d8ff, savas_cigligi: 0xffd75c };
@@ -534,7 +564,7 @@ export class World {
     label.position.y = 2.65;
     const hp = makeHpBar();
     hp.sprite.position.y = 2.3;
-    const e = { group: g, mixer, actions, hp, cur: 'idle', attacking: false,
+    const e = { group: g, model, mixer, actions, hp, cur: 'idle', attacking: false,
                 tx: p.x, tz: p.z, x: p.x, z: p.z, moving: false, dead: false, swing: 0 };
     e.setAnim = (name, fade = 0.18) => {
       if (e.cur === name || !e.actions[name]) return;
@@ -800,6 +830,8 @@ export class World {
       e.tx = p.x; e.tz = p.z; e.moving = p.moving; e.dead = p.dead;
       e.hp.draw(p.maxHp ? p.hp / p.maxHp : 0, '#58d68d');
       this.setGlow(e, p.glow || 0);
+      e.horseArmored = !!p.horseArmored;
+      this.setMounted(e, !!p.mounted);
       e.group.visible = !p.dead;
     }
     for (const [id, e] of this.players)
