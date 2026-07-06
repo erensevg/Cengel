@@ -11,8 +11,14 @@ var builder = WebApplication.CreateBuilder(args);
 
 var jwt = builder.Configuration.GetSection(JwtOptions.Section).Get<JwtOptions>()!;
 builder.Services.AddDbContext<GameDb>(o =>
-    o.UseSqlServer(builder.Configuration.GetConnectionString("Default")
-        ?? "Server=(localdb)\\MSSQLLocalDB;Database=Cengel_Game;Trusted_Connection=True;TrustServerCertificate=True"));
+{
+    // Windows: SQL Server LocalDB (varsayılan). Linux/CI testi: USE_SQLITE=1
+    if (Environment.GetEnvironmentVariable("USE_SQLITE") == "1")
+        o.UseSqlite("Data Source=game.db");
+    else
+        o.UseSqlServer(builder.Configuration.GetConnectionString("Default")
+            ?? "Server=(localdb)\\MSSQLLocalDB;Database=Cengel_Game;Trusted_Connection=True;TrustServerCertificate=True");
+});
 builder.Services.AddSingleton<WorldState>();
 builder.Services.AddSingleton<WorldService>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<WorldService>());

@@ -12,8 +12,14 @@ var builder = WebApplication.CreateBuilder(args);
 
 var jwt = builder.Configuration.GetSection(JwtOptions.Section).Get<JwtOptions>()!;
 builder.Services.AddDbContext<SocialDb>(o =>
-    o.UseSqlServer(builder.Configuration.GetConnectionString("Default")
-        ?? "Server=(localdb)\\MSSQLLocalDB;Database=Cengel_Social;Trusted_Connection=True;TrustServerCertificate=True"));
+{
+    // Windows: SQL Server LocalDB (varsayılan). Linux/CI testi: USE_SQLITE=1
+    if (Environment.GetEnvironmentVariable("USE_SQLITE") == "1")
+        o.UseSqlite("Data Source=social.db");
+    else
+        o.UseSqlServer(builder.Configuration.GetConnectionString("Default")
+            ?? "Server=(localdb)\\MSSQLLocalDB;Database=Cengel_Social;Trusted_Connection=True;TrustServerCertificate=True");
+});
 builder.Services.AddSingleton<Presence>();
 builder.Services.AddSignalR();
 builder.Services.AddHttpClient("auth", c =>

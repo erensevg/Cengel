@@ -12,8 +12,14 @@ var jwt = builder.Configuration.GetSection(JwtOptions.Section).Get<JwtOptions>()
 builder.Services.AddSingleton(jwt);
 builder.Services.AddSingleton<TokenService>();
 builder.Services.AddDbContext<AuthDb>(o =>
-    o.UseSqlServer(builder.Configuration.GetConnectionString("Default")
-        ?? "Server=(localdb)\\MSSQLLocalDB;Database=Cengel_Auth;Trusted_Connection=True;TrustServerCertificate=True"));
+{
+    // Windows: SQL Server LocalDB (varsayılan). Linux/CI testi: USE_SQLITE=1
+    if (Environment.GetEnvironmentVariable("USE_SQLITE") == "1")
+        o.UseSqlite("Data Source=auth.db");
+    else
+        o.UseSqlServer(builder.Configuration.GetConnectionString("Default")
+            ?? "Server=(localdb)\\MSSQLLocalDB;Database=Cengel_Auth;Trusted_Connection=True;TrustServerCertificate=True");
+});
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(o => o.TokenValidationParameters = new TokenValidationParameters
