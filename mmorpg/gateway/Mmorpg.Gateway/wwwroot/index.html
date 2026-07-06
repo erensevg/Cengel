@@ -44,7 +44,15 @@
 
   <div id="target-frame" class="hidden">
     <div id="tf-name">—</div>
-    <div class="bar hp small"><div id="tf-hp"></div></div>
+    <div class="bar hp"><div id="tf-hp"></div><span id="tf-hpnum"></span></div>
+  </div>
+
+  <div id="map-overlay" class="hidden">
+    <div id="map-panel">
+      <div id="map-title">Harita</div>
+      <canvas id="map-canvas" width="560" height="560"></canvas>
+      <div id="map-legend">🟢 Sen · 🔵 Oyuncular · 🟠 Canavar · 🟣 Metin · 🔴 Boss · 🏠 Köy · 🌀 Kapı &nbsp;—&nbsp; (M ile kapat)</div>
+    </div>
   </div>
 
   <div id="notices"></div>

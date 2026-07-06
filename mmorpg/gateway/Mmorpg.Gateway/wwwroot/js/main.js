@@ -177,9 +177,56 @@ function showTarget(mobId) {
 }
 function refreshTargetHp() {
   const e = world.mobs.get(targetMobId);
-  if (e) $('tf-hp').style.width = `${(e.lastHp / e.maxHp) * 100}%`;
+  if (e) {
+    $('tf-hp').style.width = `${(e.lastHp / e.maxHp) * 100}%`;
+    $('tf-hpnum').textContent = `${Math.max(0, Math.round(e.lastHp))} / ${e.maxHp}`;
+  }
 }
 function hideTarget() { $('target-frame').classList.add('hidden'); }
+
+/* ---------------- M haritası (tam ekran) ---------------- */
+let mapTimer = null;
+function toggleMap() {
+  const ov = $('map-overlay');
+  if (ov.classList.contains('hidden')) {
+    const md = cfg.maps.find(m => m.id === currentMapId);
+    $('map-title').textContent = 'Harita — ' + (md?.name ?? '');
+    ov.classList.remove('hidden');
+    drawMap();
+    mapTimer = setInterval(drawMap, 400);
+  } else {
+    ov.classList.add('hidden');
+    if (mapTimer) { clearInterval(mapTimer); mapTimer = null; }
+  }
+}
+const MAP_BOSSES = ['kemik_lordu', 'kum_firavunu', 'ejder_ruhu'];
+function drawMap() {
+  if (!world || !cfg) return;
+  const c = $('map-canvas'), g = c.getContext('2d');
+  const S = c.width, half = cfg.worldHalf + 10;
+  const px = v => (v / half) * (S / 2) + S / 2;
+  g.clearRect(0, 0, S, S);
+  g.fillStyle = '#0c1220'; g.fillRect(0, 0, S, S);
+  g.strokeStyle = 'rgba(255,255,255,.06)'; g.lineWidth = 1;
+  for (let i = 1; i < 8; i++) {
+    const p = i / 8 * S;
+    g.beginPath(); g.moveTo(p, 0); g.lineTo(p, S); g.moveTo(0, p); g.lineTo(S, p); g.stroke();
+  }
+  g.font = '17px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  const md = cfg.maps.find(m => m.id === currentMapId);
+  g.fillText('🏠', px(cfg.spawnPoint[0]), px(cfg.spawnPoint[1]));
+  if (md) g.fillText('🌀', px(md.portalX), px(md.portalZ));
+  for (const [, e] of world.mobs) {
+    const metin = (e.code || '').startsWith('metin');
+    const boss = MAP_BOSSES.includes(e.code);
+    g.fillStyle = metin ? '#b07bff' : boss ? '#ff5a4a' : '#ffa64d';
+    g.beginPath(); g.arc(px(e.x), px(e.z), boss ? 6 : metin ? 4.5 : 2.6, 0, 7); g.fill();
+  }
+  for (const [id, e] of world.players) {
+    g.fillStyle = id === selfId ? '#58d68d' : '#5aa9ff';
+    g.beginPath(); g.arc(px(e.x), px(e.z), id === selfId ? 5 : 3.2, 0, 7); g.fill();
+  }
+}
 
 /* ---------------- bildirimler ---------------- */
 function notice(text) {
@@ -755,6 +802,7 @@ addEventListener('keydown', e => {
   if (k === 'c' || k === 'ç') { toggleChar(); return; }
   if (k === 'k') { toggleSkillWin(); return; }
   if (k === 'j') { toggleQuestWin(); return; }
+  if (k === 'm') { toggleMap(); return; }
   if (e.key >= '1' && e.key <= '4') {
     const el = $(`qs-${e.key}`);
     if (el?.dataset.skill) castSkill(el.dataset.skill);
@@ -764,6 +812,9 @@ addEventListener('keydown', e => {
   if (e.key === '6') { usePotion('mp'); return; }
   if (e.key === 'Escape' && pickedItem) {
     pickedItem = null; ghost.classList.add('hidden'); refreshInv(); return;
+  }
+  if (e.key === 'Escape' && !$('map-overlay').classList.contains('hidden')) {
+    toggleMap(); return;
   }
   if (e.key === 'Escape') {
     targetMobId = null;
