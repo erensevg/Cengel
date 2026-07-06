@@ -186,6 +186,12 @@ public class GameHub(WorldState world, WorldService worldService, GameDb db) : H
             var d = MathF.Sqrt((p.X - cur.PortalX) * (p.X - cur.PortalX) +
                                (p.Z - cur.PortalZ) * (p.Z - cur.PortalZ));
             if (d > 6f) return new { error = "Işınlanma Kapısı'na yaklaş." };
+            // portal ışınlanması paralıdır
+            var cost = GameConfig.TeleportCost(target);
+            if (p.Yang < cost)
+                return new { error = $"Işınlanma {cost} yang tutar, yeterli yang'ın yok." };
+            p.Yang -= cost;
+            p.Dirty = true;
         }
 
         var oldMap = p.MapId;
@@ -203,6 +209,7 @@ public class GameHub(WorldState world, WorldService worldService, GameDb db) : H
         await Clients.Group(WorldState.Group(mapId)).SendAsync("notice",
             new { text = $"✦ {p.Name}, {target.Name}'ne geldi." });
         worldService.AdvanceQuest(p, "map", mapId, 1);
+        worldService.SendStats(p);   // yang düşüşü HUD'a yansısın
         return new
         {
             ok = true, mapId, mapName = target.Name,

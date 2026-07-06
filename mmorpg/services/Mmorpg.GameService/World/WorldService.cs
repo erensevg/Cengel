@@ -185,10 +185,16 @@ public class WorldService(
                     target.Hp = 0; target.Dead = true;
                     target.AttackMobId = null; target.TargetX = target.TargetZ = null;
                     mob.TargetConnId = null;
+                    // ölüm cezası: seviyenin %1'i kadar XP kaybı (seviye düşmez)
+                    var penalty = GameConfig.DeathXpPenalty(target.Level);
+                    var floor = GameConfig.XpForLevel(target.Level);
+                    target.Xp = Math.Max(floor, target.Xp - penalty);
+                    target.Dirty = true;
                     _ = hub.Clients.Client(target.ConnectionId)
-                        .SendAsync("youDied", new { by = def.Name });
+                        .SendAsync("youDied", new { by = def.Name, xpLost = penalty });
                     _ = Group(map).SendAsync("notice",
-                        new { text = $"☠ {target.Name}, {def.Name} tarafından öldürüldü!" });
+                        new { text = $"☠ {target.Name}, {def.Name} tarafından öldürüldü! (-{penalty} XP)" });
+                    SendStats(target);
                 }
                 else SendStats(target);
             }

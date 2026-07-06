@@ -29,7 +29,7 @@ public record QuestDef(string Code, string Title, string Kind /* kill | metin | 
 /// <summary>Tek doğruluk kaynağı: tüm oyun tanımları. İstemciye /api/game/config ile iner.</summary>
 public static class GameConfig
 {
-    public const float WorldHalf = 100f;
+    public const float WorldHalf = 160f;
     public const float PlayerSpeed = 6.5f;
     public const float PlayerAttackRange = 2.6f;
     public const float PlayerAttackCooldown = 0.85f;
@@ -262,48 +262,51 @@ public static class GameConfig
         ["metin_ruh"] = "buz_savascisi",
     };
 
+    // Harita ±160 birim. Her canavar türü belirli bir BÖLGEDE yoğunlaşır;
+    // köyden uzaklaştıkça seviye artar (güvenli köy → tehlikeli sınır).
     public static readonly SpawnZone[] Spawns =
     [
-        new("dogu", "yaban_domuzu", -30f, -20f, 20f, 9),
-        new("dogu", "yaban_domuzu", 15f, -35f, 14f, 5),
-        new("dogu", "kurt", 40f, 30f, 22f, 8),
-        new("dogu", "kurt", -45f, 40f, 18f, 5),
-        new("dogu", "metin_kaya", 0f, 45f, 0f, 1),
-        new("dogu", "metin_kaya", -62f, -58f, 0f, 1),
-        new("dogu", "metin_kaya", 72f, 8f, 0f, 1),
+        // ═══ Doğu Vadisi (köy: 0,-6) — güneyde zayıf, kuzeyde güçlü ═══
+        new("dogu", "golge_yarasa",   -35f,  30f, 22f, 10),   // yakın çayır (Sv2)
+        new("dogu", "yaban_domuzu",    40f,  25f, 26f, 12),   // doğu tepeleri (Sv1)
+        new("dogu", "yaban_domuzu",   -30f, -55f, 22f,  8),   // güney otlak
+        new("dogu", "kurt",           -60f,  75f, 30f, 12),   // kuzeybatı orman (Sv3)
+        new("dogu", "kurt",            70f,  70f, 28f, 10),   // kuzeydoğu orman
+        new("dogu", "mezar_muhafizi",  95f, -30f, 24f,  8),   // doğu mezarlık (Sv4)
+        new("dogu", "mezar_muhafizi", -95f, -50f, 24f,  7),   // batı mezarlık
+        new("dogu", "kemik_lordu",    -120f, 120f, 8f,  1),   // uzak kuzeybatı BOSS
+        new("dogu", "kemik_lordu",     120f, 110f, 8f,  1),   // uzak kuzeydoğu BOSS
+        new("dogu", "metin_kaya",       0f,  60f, 0f,  1),
+        new("dogu", "metin_kaya",     -90f, -90f, 0f,  1),
+        new("dogu", "metin_kaya",     110f,  10f, 0f,  1),
+        new("dogu", "metin_golge",     60f, 130f, 0f,  1),
+        new("dogu", "metin_golge",   -130f,  20f, 0f,  1),
 
-        new("col", "col_akrebi", -35f, 20f, 24f, 10),
-        new("col", "col_akrebi", 30f, -40f, 18f, 7),
-        new("col", "col_kurdu", 45f, 35f, 22f, 8),
-        new("col", "dag_ayisi", -55f, -50f, 18f, 5),
-        new("col", "metin_ates", 0f, 50f, 0f, 1),
-        new("col", "metin_ates", -70f, 10f, 0f, 1),
-        new("col", "metin_ates", 60f, -65f, 0f, 1),
+        // ═══ Kızıl Çöl (köy: 0,-6) ═══
+        new("col", "col_akrebi",      -40f,  30f, 28f, 12),   // yakın kum (Sv6)
+        new("col", "col_akrebi",       45f, -45f, 24f, 10),
+        new("col", "col_yilani",      -30f, -70f, 26f, 12),   // güney vadi (Sv7)
+        new("col", "col_yilani",       80f,  20f, 26f, 10),   // doğu dumları
+        new("col", "col_kurdu",        60f,  80f, 28f, 10),   // kuzeydoğu (Sv8)
+        new("col", "dag_ayisi",       -85f,  85f, 24f,  7),   // kuzeybatı (Sv10)
+        new("col", "kum_firavunu",    125f, 125f, 8f,  1),    // uzak köşe BOSS
+        new("col", "metin_ates",        0f,  65f, 0f,  1),
+        new("col", "metin_ates",     -100f,  15f, 0f,  1),
+        new("col", "metin_ates",       90f, -95f, 0f,  1),
+        new("col", "metin_kum",      -120f, -100f, 0f, 1),
+        new("col", "metin_kum",       115f,  55f, 0f,  1),
 
-        new("zirve", "buz_kurdu", -30f, 25f, 22f, 9),
-        new("zirve", "buz_kurdu", 35f, -30f, 20f, 7),
-        new("zirve", "kar_ayisi", 55f, 40f, 18f, 5),
-        new("zirve", "kar_ayisi", -60f, -45f, 16f, 4),
-        new("zirve", "metin_buz", 0f, 55f, 0f, 1),
-        new("zirve", "metin_buz", -70f, -20f, 0f, 1),
-
-        // ── GENİŞLETME spawnları ──
-        new("dogu", "golge_yarasa", -20f, 55f, 16f, 8),
-        new("dogu", "mezar_muhafizi", 55f, -25f, 18f, 6),
-        new("dogu", "kemik_lordu", -78f, 66f, 6f, 1),
-        new("dogu", "metin_golge", 42f, 70f, 0f, 1),
-        new("dogu", "metin_golge", -85f, -10f, 0f, 1),
-
-        new("col", "col_yilani", -20f, -60f, 20f, 9),
-        new("col", "kum_firavunu", 72f, 72f, 6f, 1),
-        new("col", "metin_kum", -42f, 66f, 0f, 1),
-        new("col", "metin_kum", 76f, 24f, 0f, 1),
-
-        new("zirve", "kar_cini", -15f, -55f, 20f, 9),
-        new("zirve", "buz_savascisi", 60f, -60f, 18f, 6),
-        new("zirve", "ejder_ruhu", 0f, 82f, 6f, 1),
-        new("zirve", "metin_ruh", -76f, 55f, 0f, 1),
-        new("zirve", "metin_ruh", 72f, 14f, 0f, 1),
+        // ═══ Buz Zirvesi (köy: 0,-6) ═══
+        new("zirve", "kar_cini",      -35f,  35f, 26f, 11),   // yakın buzul (Sv11)
+        new("zirve", "buz_kurdu",      45f, -40f, 26f, 11),   // güneydoğu (Sv12)
+        new("zirve", "buz_kurdu",     -55f, -65f, 24f,  9),
+        new("zirve", "buz_savascisi",  75f,  75f, 26f,  9),   // kuzeydoğu (Sv13)
+        new("zirve", "kar_ayisi",     -90f,  90f, 24f,  7),   // kuzeybatı (Sv15)
+        new("zirve", "ejder_ruhu",      0f, 135f, 10f,  1),   // zirvenin tepesi BOSS
+        new("zirve", "metin_buz",       0f,  60f, 0f,  1),
+        new("zirve", "metin_buz",    -105f, -30f, 0f,  1),
+        new("zirve", "metin_ruh",    -110f,  95f, 0f,  1),
+        new("zirve", "metin_ruh",     120f,  25f, 0f,  1),
     ];
 
     public static readonly SkillDef[] Skills =
@@ -363,6 +366,16 @@ public static class GameConfig
     public static readonly double[] UpgradeChance =
         [1.0, 0.90, 0.80, 0.65, 0.55, 0.45, 0.35, 0.25, 0.20, 0.15, 0.10];
     public const int MaxPlus = 11;
+    /// <summary>Portal ışınlanma ücreti (yang). Hedef harita zorlaştıkça artar.</summary>
+    public static long TeleportCost(MapDef m) => 300 + m.ReqLevel * 200L;
+
+    /// <summary>Ölüm cezası: mevcut seviyenin XP aralığının %1'i (seviye düşmez).</summary>
+    public static long DeathXpPenalty(int level)
+    {
+        var span = XpForLevel(level + 1) - XpForLevel(level);
+        return Math.Max(1, span / 100);
+    }
+
     public static long UpgradeYangCost(int plus) => 200L * (plus + 1) * (plus + 1);
     public static int UpgradeShardCost(int plus) => 1 + plus / 3;
 

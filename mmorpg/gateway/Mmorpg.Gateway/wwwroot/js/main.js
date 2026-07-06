@@ -572,12 +572,16 @@ function openTeleport(viaScroll) {
   for (const m of cfg.maps) {
     const here = m.id === currentMapId;
     const ok = !here && (stats?.level ?? 1) >= m.reqLevel;
+    const cost = 300 + m.reqLevel * 200;   // sunucudaki TeleportCost ile aynı
+    const costLine = viaScroll
+      ? '<div class="tp-req">📜 1 parşömen</div>'
+      : `<div class="tp-req">💰 ${cost} yang · Seviye ${m.reqLevel}+</div>`;
     body.insertAdjacentHTML('beforeend', `
       <div class="tp-row">
         <span class="tp-mid">
           <div class="tp-name">${m.name}${here ? ' (buradasın)' : ''}</div>
           <div class="tp-desc">${m.desc}</div>
-          <div class="tp-req">Seviye ${m.reqLevel}+</div>
+          ${costLine}
         </span>
         <button data-tp="${m.id}" ${ok ? '' : 'disabled'}>IŞINLAN</button>
       </div>`);
