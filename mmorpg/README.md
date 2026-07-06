@@ -21,8 +21,11 @@ Tarayıcıda **http://localhost:5000** — kayıt ol ve oyna. İki farklı taray
 
 Alternatif: `docker compose up --build` (aynı portlar).
 
-SQLite dosyaları (auth.db / game.db / social.db) ilk çalıştırmada kendi
-servis klasörlerinde otomatik oluşur; silersen sıfırdan başlar.
+Veritabanı: **SQL Server LocalDB** — her servis kendi DB'sini ilk çalıştırmada
+`EnsureCreated` ile otomatik oluşturur (`Cengel_Auth` / `Cengel_Game` /
+`Cengel_Social`). Bağlantı dizeleri `appsettings.json` içinde
+(`(localdb)\MSSQLLocalDB`, Windows Kimlik Doğrulaması). Sıfırlamak için ilgili
+DB'yi düşür (ör. SSMS'te `DROP DATABASE Cengel_Game`).
 
 ## Mimari
 
@@ -36,15 +39,17 @@ servis klasörlerinde otomatik oluşur; silersen sıfırdan başlar.
         ▼                        /api/game/*, /hubs/game              ▼
   AuthService :5001                     ▼                    SocialService :5003
   kayıt/giriş, JWT üretimi     GameService :5002             ChatHub: genel+fısıltı,
-  PBKDF2 parola; auth.db       GameHub + dünya döngüsü       çevrimiçi durum; arkadaşlık
-                               (150ms tick, sunucu otoriter) API; social.db
+  PBKDF2 parola; Cengel_Auth   GameHub + dünya döngüsü       çevrimiçi durum; arkadaşlık
+                               (150ms tick, sunucu otoriter) API; Cengel_Social
                                mob AI, metinler, XP/level,   (kullanıcı adı çözmek için
-                               yang/drop, envanter; game.db   Auth'a HTTP çağrısı yapar)
+                               yang/drop, envanter;          Auth'a HTTP çağrısı yapar)
+                               Cengel_Game
 ```
 
 - **Kimlik**: Auth JWT üretir; Game ve Social aynı simetrik anahtarla doğrular
   (appsettings `Jwt:Key` — üç serviste aynı olmalı, üretimde gizli tutulmalı).
-- **Servis başına ayrı veritabanı** (SQLite): servisler birbirinin DB'sine dokunmaz.
+- **Servis başına ayrı veritabanı** (SQL Server LocalDB): servisler birbirinin
+  DB'sine dokunmaz.
 - **Sunucu otoriter oyun**: istemci yalnızca niyet gönderir (yürü/saldır);
   hasar, XP, level, drop tamamı `WorldService` içinde hesaplanır.
 - SignalR WebSocket'leri gateway'den geçer; token `access_token` query'siyle taşınır.

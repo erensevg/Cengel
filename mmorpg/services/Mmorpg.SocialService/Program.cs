@@ -12,7 +12,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 var jwt = builder.Configuration.GetSection(JwtOptions.Section).Get<JwtOptions>()!;
 builder.Services.AddDbContext<SocialDb>(o =>
-    o.UseSqlite(builder.Configuration.GetConnectionString("Default") ?? "Data Source=social.db"));
+    o.UseSqlServer(builder.Configuration.GetConnectionString("Default")
+        ?? "Server=(localdb)\\MSSQLLocalDB;Database=Cengel_Social;Trusted_Connection=True;TrustServerCertificate=True"));
 builder.Services.AddSingleton<Presence>();
 builder.Services.AddSignalR();
 builder.Services.AddHttpClient("auth", c =>

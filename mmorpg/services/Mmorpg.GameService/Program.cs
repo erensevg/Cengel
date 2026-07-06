@@ -11,7 +11,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 var jwt = builder.Configuration.GetSection(JwtOptions.Section).Get<JwtOptions>()!;
 builder.Services.AddDbContext<GameDb>(o =>
-    o.UseSqlite(builder.Configuration.GetConnectionString("Default") ?? "Data Source=game.db"));
+    o.UseSqlServer(builder.Configuration.GetConnectionString("Default")
+        ?? "Server=(localdb)\\MSSQLLocalDB;Database=Cengel_Game;Trusted_Connection=True;TrustServerCertificate=True"));
 builder.Services.AddSingleton<WorldState>();
 builder.Services.AddSingleton<WorldService>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<WorldService>());

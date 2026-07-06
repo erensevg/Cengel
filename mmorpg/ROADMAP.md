@@ -145,9 +145,15 @@ tamamlanan görevler DB'de); CharacterQuest.Progress alanına periyodik yazım e
   hesaplar. Tepeler dikleşirse sunucuya da aynı fonksiyonu taşı.
 - İstemcide anti-cheat yok denecek kadar az: hareket hedefi sunucuda
   sınırlandırılıyor ama hızlı `MoveTo` spam'i sorun değil (hedef üzerine yazılır).
+- **Veritabanı: SQL Server LocalDB** (önceden SQLite idi). Her servis ayrı DB:
+  `Cengel_Auth` (kayıt/hesap), `Cengel_Game` (karakter/item/görev),
+  `Cengel_Social` (arkadaş). Bağlantı dizeleri her servisin `appsettings.json`
+  `ConnectionStrings:Default` alanında; sağlayıcı `UseSqlServer` (Program.cs).
+  LocalDB yalnızca Windows'ta çalışır — Linux/CI'da SQLite'a dönmek istersen
+  `UseSqlServer`→`UseSqlite` + paket + dizeyi değiştir.
 - EF migrations yok: şema `EnsureCreated` ile kurulur. Şema değişikliğinde ya
-  .db dosyalarını sil ya da migrations'a geç (`dotnet ef migrations add ...`).
-  (Silah/slot güncellemesi şemayı değiştirdi: eski `game.db` varsa SİL.)
+  DB'yi düşür (SSMS/Azure Data Studio'da `DROP DATABASE Cengel_Game` veya
+  `sqllocaldb stop MSSQLLocalDB` + sil) ya da migrations'a geç.
 - Üç serviste aynı `Jwt:Key` (appsettings) — değiştirirsen üçünü birden değiştir.
 
 ## Test
