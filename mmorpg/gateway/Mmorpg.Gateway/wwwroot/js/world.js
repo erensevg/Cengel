@@ -827,6 +827,7 @@ export class World {
       seenP.add(p.id);
       let e = this.players.get(p.id);
       if (!e) { e = this._makePlayer(p); this.players.set(p.id, e); }
+      e.name = p.name;
       e.tx = p.x; e.tz = p.z; e.moving = p.moving; e.dead = p.dead;
       e.hp.draw(p.maxHp ? p.hp / p.maxHp : 0, '#58d68d');
       this.setGlow(e, p.glow || 0);
@@ -937,6 +938,16 @@ export class World {
       if (hit && hit.distance < pickBest) { pickBest = hit.distance; pickedMob = id; }
     }
     if (pickedMob != null) { this.cb.onMobClick(pickedMob); return; }
+    // diğer oyuncular (düello/ticaret)
+    let pickedPl = null, pickedPlId = null, plBest = Infinity;
+    for (const [id, pe] of this.players) {
+      if (id === this.selfId || pe.dead) continue;
+      const hit = this.ray.intersectObject(pe.group, true)[0];
+      if (hit && hit.distance < plBest) { plBest = hit.distance; pickedPl = pe; pickedPlId = id; }
+    }
+    if (pickedPl && this.cb.onPlayerClick) {
+      this.cb.onPlayerClick(pickedPlId, pickedPl.name || 'Oyuncu'); return;
+    }
     const hitG = this.ray.intersectObject(this.ground, false)[0];
     if (hitG) this.cb.onGroundClick(hitG.point.x, hitG.point.z);
   }

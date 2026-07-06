@@ -96,6 +96,31 @@ public class WorldService(
                     }
                 }
             }
+            else if (p.AttackPlayerConn is { } oppConn && p.DuelWith is { } duelId)
+            {
+                if (!map.Players.TryGetValue(oppConn, out var opp) || opp.Dead ||
+                    opp.CharacterId != duelId || opp.DuelWith != p.CharacterId)
+                {
+                    p.AttackPlayerConn = null;
+                }
+                else
+                {
+                    var dist = Dist(p.X, p.Z, opp.X, opp.Z);
+                    if (dist > GameConfig.PlayerAttackRange)
+                    {
+                        p.TargetX = opp.X; p.TargetZ = opp.Z;
+                    }
+                    else
+                    {
+                        p.TargetX = p.TargetZ = null;
+                        if (now - p.LastAttackAt >= GameConfig.PlayerAttackCooldown)
+                        {
+                            p.LastAttackAt = now;
+                            HitPlayer(p, map, opp, now);
+                        }
+                    }
+                }
+            }
 
             if (p.TargetX is { } tx && p.TargetZ is { } tz)
             {
@@ -284,6 +309,41 @@ public class WorldService(
         });
         AdvanceQuest(p, mob.Def.Metin ? "metin" : "kill", mob.Def.Code, 1);
         SendStats(p);
+    }
+
+    /* ================= PvP düello ================= */
+    private void HitPlayer(PlayerState atk, MapState map, PlayerState tgt, double now)
+    {
+        var crit = Rng.NextDouble() < 0.10;
+        var dmg = Math.Max(1, Vary(atk.Damage) * 100 / (100 + tgt.Defense));
+        if (crit) dmg = (int)(dmg * 1.6);
+        tgt.Hp -= dmg; tgt.Dirty = true;
+        _ = Group(map).SendAsync("dmg",
+            new { tt = "pl", id = tgt.CharacterId, a = dmg, crit, from = atk.Name });
+        if (tgt.Hp <= 0)
+        {
+            tgt.Hp = 1;   // düelloda ölüm yok — 1 canla kalır
+            EndDuel(atk, tgt, winnerName: atk.Name);
+        }
+        else SendStats(tgt);
+    }
+
+    /// <summary>Düelloyu bitir: her iki tarafı temizle, sonucu duyur.</summary>
+    public void EndDuel(PlayerState a, PlayerState b, string? winnerName)
+    {
+        foreach (var pl in new[] { a, b })
+        {
+            pl.DuelWith = null; pl.DuelOppConn = null;
+            pl.AttackPlayerConn = null; pl.TargetX = pl.TargetZ = null;
+        }
+        SendStats(a); SendStats(b);
+        var map = world.Maps[a.MapId];
+        if (winnerName is not null)
+            _ = Group(map).SendAsync("notice",
+                new { text = $"⚔️ Düello bitti — {winnerName} kazandı!" });
+        foreach (var pl in new[] { a, b })
+            _ = hub.Clients.Client(pl.ConnectionId).SendAsync("duelEnd",
+                new { winner = winnerName });
     }
 
     public void GainXp(PlayerState p, int amount)

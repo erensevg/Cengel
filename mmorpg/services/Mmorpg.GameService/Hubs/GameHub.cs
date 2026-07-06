@@ -195,6 +195,10 @@ public class GameHub(WorldState world, WorldService worldService, GameDb db) : H
             p.Dirty = true;
         }
 
+        // düellodayken başka haritaya geçersen düello biter
+        if (p.DuelWith is { } dOpp && FindInMap(p, dOpp) is { } dOo)
+            worldService.EndDuel(p, dOo, winnerName: dOo.Name);
+
         var oldMap = p.MapId;
         world.Maps[oldMap].Players.TryRemove(Context.ConnectionId, out _);
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, WorldState.Group(oldMap));
@@ -506,10 +510,69 @@ public class GameHub(WorldState world, WorldService worldService, GameDb db) : H
         return new { ok = true, mounted = p.Mounted };
     }
 
+    /* ---------------- PvP düello ---------------- */
+    private PlayerState? FindInMap(PlayerState me, Guid charId) =>
+        world.Maps[me.MapId].Players.Values.FirstOrDefault(x => x.CharacterId == charId);
+
+    public async Task<object> DuelRequest(Guid targetId)
+    {
+        if (Me is not { Dead: false } p) return new { error = "Şu an düello isteyemezsin." };
+        if (p.DuelWith is not null) return new { error = "Zaten bir düellodasın." };
+        if (targetId == p.CharacterId) return new { error = "Kendine meydan okuyamazsın." };
+        var t = FindInMap(p, targetId);
+        if (t is null) return new { error = "Oyuncu yakında değil." };
+        if (t.Dead || t.DuelWith is not null) return new { error = "Oyuncu müsait değil." };
+        t.DuelPendingFrom = p.CharacterId;
+        t.DuelPendingConn = Context.ConnectionId;
+        await Clients.Client(t.ConnectionId).SendAsync("duelRequest",
+            new { fromId = p.CharacterId, fromName = p.Name });
+        return new { ok = true, name = t.Name };
+    }
+
+    public async Task<object> DuelRespond(bool accept)
+    {
+        if (Me is not { } p) return new { error = "Oyunda değilsin." };
+        if (p.DuelPendingFrom is not { } reqId) return new { error = "Bekleyen düello isteği yok." };
+        var opp = FindInMap(p, reqId);
+        p.DuelPendingFrom = null; p.DuelPendingConn = null;
+        if (opp is null || opp.Dead) return new { error = "İsteyen oyuncu gitti." };
+        if (!accept)
+        {
+            await Clients.Client(opp.ConnectionId).SendAsync("notice",
+                new { text = $"🚫 {p.Name} düelloyu reddetti." });
+            return new { ok = true, declined = true };
+        }
+        if (p.DuelWith is not null || opp.DuelWith is not null)
+            return new { error = "Taraflardan biri zaten düelloda." };
+        p.DuelWith = opp.CharacterId; p.DuelOppConn = opp.ConnectionId;
+        opp.DuelWith = p.CharacterId; opp.DuelOppConn = Context.ConnectionId;
+        worldService.SendStats(p); worldService.SendStats(opp);
+        await Clients.Group(WorldState.Group(p.MapId)).SendAsync("notice",
+            new { text = $"⚔️ {opp.Name} ve {p.Name} düelloya başladı!" });
+        await Clients.Client(p.ConnectionId).SendAsync("duelStart",
+            new { oppId = opp.CharacterId, oppName = opp.Name });
+        await Clients.Client(opp.ConnectionId).SendAsync("duelStart",
+            new { oppId = p.CharacterId, oppName = p.Name });
+        return new { ok = true };
+    }
+
+    public Task AttackPlayer(Guid targetId)
+    {
+        if (Me is { Dead: false } p && p.DuelWith == targetId)
+        {
+            var opp = FindInMap(p, targetId);
+            if (opp is not null) { p.AttackPlayerConn = opp.ConnectionId; p.AttackMobId = null; }
+        }
+        return Task.CompletedTask;
+    }
+
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
         if (Me is { } p)
         {
+            // düellodaysa rakibi serbest bırak (kaçan kaybeder)
+            if (p.DuelWith is { } oppId && FindInMap(p, oppId) is { } opp)
+                worldService.EndDuel(p, opp, winnerName: opp.Name);
             world.Maps[p.MapId].Players.TryRemove(Context.ConnectionId, out _);
             p.Dirty = true;
             await worldService.SaveDirtyAsync();

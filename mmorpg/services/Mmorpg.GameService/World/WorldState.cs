@@ -36,6 +36,12 @@ public class PlayerState
     public bool HasHorse;       // at satın alındı mı
     public bool HorseArmored;   // at zırhlandı mı (kıvılcım)
     public bool Mounted;        // şu an ata binili mi
+    // PvP düello
+    public Guid? DuelWith;         // rakip karakter id (düello aktif)
+    public string? DuelOppConn;    // rakip bağlantı id
+    public Guid? DuelPendingFrom;  // düello isteği gönderen karakter id
+    public string? DuelPendingConn;
+    public string? AttackPlayerConn; // saldırdığı oyuncunun bağlantı id'si (düelloda)
 
     /// <summary>Hareket hızı — ata binince hızlanır (zırhlıysa biraz daha).</summary>
     public float Speed => Mounted

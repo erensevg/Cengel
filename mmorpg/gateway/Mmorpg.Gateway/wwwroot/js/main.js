@@ -5,6 +5,7 @@ import { World } from './world.js';
 const $ = id => document.getElementById(id);
 let world = null, gameConn = null, chatConn = null, cfg = null;
 let selfId = null, stats = null, targetMobId = null;
+let duelOppId = null, pendingDuelFrom = null;
 let mySkills = {}, currentMapId = null, quest = null;   // quest: {code,title,story,progress,target}
 
 /* ---------------- giriş ---------------- */
@@ -49,6 +50,10 @@ async function startGame() {
       if (role === 'demirci') openSmith();
       else if (role === 'at_tuccari') openStable();
       else openShop(role);
+    },
+    onPlayerClick(id, name) {
+      if (duelOppId === id) { gameConn.invoke('AttackPlayer', id); return; }
+      openPlayerMenu(id, name);
     },
   });
 
@@ -135,6 +140,19 @@ function wireGameEvents() {
     $('death').classList.remove('hidden');
   });
   gameConn.on('notice', n => notice(n.text));
+  gameConn.on('duelRequest', d => {
+    pendingDuelFrom = d.fromId;
+    $('dr-text').textContent = `${d.fromName} seni düelloya çağırıyor!`;
+    $('duel-req').classList.remove('hidden');
+  });
+  gameConn.on('duelStart', d => {
+    duelOppId = d.oppId;
+    notice(`⚔️ ${d.oppName} ile düello başladı! Rakibe tıklayarak saldır.`);
+  });
+  gameConn.on('duelEnd', d => {
+    duelOppId = null;
+    notice(d.winner ? `⚔️ Düello bitti — kazanan: ${d.winner}` : 'Düello bitti.');
+  });
   gameConn.on('questProgress', q => {
     if (quest && quest.code === q.code) {
       quest.progress = q.progress;
@@ -714,6 +732,30 @@ async function toggleMount() {
   notice(r.mounted ? '🐎 Ata bindin' : '🚶 Attan indin');
   if (!$('stable-win').classList.contains('hidden')) renderStable();
 }
+
+/* ---------------- oyuncu menüsü + düello ---------------- */
+let menuTargetId = null;
+function openPlayerMenu(id, name) {
+  menuTargetId = id;
+  $('pm-name').textContent = name;
+  $('player-menu').classList.remove('hidden');
+}
+$('pm-duel').onclick = async () => {
+  $('player-menu').classList.add('hidden');
+  if (!menuTargetId) return;
+  const r = await gameConn.invoke('DuelRequest', menuTargetId);
+  notice(r.error || `⚔️ ${r.name}'a düello isteği gönderildi.`);
+};
+$('pm-close').onclick = () => $('player-menu').classList.add('hidden');
+$('dr-accept').onclick = async () => {
+  $('duel-req').classList.add('hidden');
+  const r = await gameConn.invoke('DuelRespond', true);
+  if (r.error) notice(r.error);
+};
+$('dr-decline').onclick = async () => {
+  $('duel-req').classList.add('hidden');
+  await gameConn.invoke('DuelRespond', false);
+};
 
 /* ---------------- görev takipçisi + günlük + hikaye ---------------- */
 function setQuest(q) {
