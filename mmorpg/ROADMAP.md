@@ -56,8 +56,24 @@ Test kancası: tarayıcı konsolunda `window.__mmo()`.
 - **GLTF gerçek karakterler**: KayKit Adventurers (CC0) — Şövalye (kendin),
   Barbar/Kurnaz/Büyücü (diğer oyuncular, isim karmasına göre); AnimationMixer ile
   Idle/Koşu/Saldırı animasyonları, crossfade; model yüklenemezse prosedürel yedek.
-  Dosyalar: wwwroot/assets/characters/*.glb (+LICENSE). Mobları da GLTF yapmak için:
-  KayKit/Quaternius hayvan paketleri → MOB_STYLE yerine aynı desenle yükle.
+  Dosyalar: wwwroot/assets/characters/*.glb (+LICENSE).
+
+## GÖRSEL YENİLEME ✅ (mob + arazi)
+
+- **GLTF iskelet moblar**: KayKit Skeletons (CC0) — Minion/Warrior/Rogue/Mage.
+  `MOB_MODEL` kod→dosya+ölçek eşlemesi; `_makeGltfMob` AnimationMixer ile
+  Idle/Koşu/Saldırı; oyuncu hasar alınca en yakın mob saldırı animasyonu oynatır;
+  ışın izi (raycast) grup bazlı özyineli seçim. Prosedürel kutular yalnızca yedek.
+  Dosyalar: wwwroot/assets/mobs/*.glb (+LICENSE).
+- **Tema uyumu**: moblar iskelet olduğundan mob/item/görev metinleri undead temaya
+  çevrildi (İskelet Er/Savaşçı/Şampiyon, Kum Haydudu/Büyücü, Buz Hayaleti/Lordu;
+  Kemik Parçası/Kara Kumaş/Çöl Zehri/Şampiyon Nişanı) — `GameConfig.cs`.
+- **Arazi + ışık**: harita başına prosedürel detay dokusu (benek/çim/kum/kar,
+  `RepeatWrapping`), tema başına güneş rengi/şiddeti + hemisphere + gökyüzü degrade
+  (`THEMES.sun/sunI/hemi/speck/sky`). `_buildTerrain` içinde.
+
+  Sonraki mob görsel geliştirmesi için: KayKit Skeletons paketinde başka varyantlar
+  (Skeleton_Archer vb.) veya boss için ayrı GLB → `MOB_MODEL`'e ekle.
 
 Bilinen kısıt: görev İLERLEMESİ (progress) yeniden girişte sıfırlanır (yalnızca
 tamamlanan görevler DB'de); CharacterQuest.Progress alanına periyodik yazım eklenebilir.

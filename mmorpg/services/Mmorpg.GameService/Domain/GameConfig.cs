@@ -55,10 +55,10 @@ public static class GameConfig
     public static readonly ItemDef[] Items =
     [
         // malzemeler (tüccara satılır)
-        new("domuz_derisi", "Domuz Derisi", "🐗", "Yaban domuzundan düşer, tüccara satılır.", Price: 8),
-        new("kurt_postu", "Kurt Postu", "🐺", "Kalın kış postu.", Price: 14),
-        new("zehir_ignesi", "Zehir İğnesi", "🦂", "Akrep kuyruğundan; simyada kullanılır.", Price: 22),
-        new("ayi_pencesi", "Ayı Pençesi", "🐻", "Güç iksirlerinin ham maddesi.", Price: 35),
+        new("domuz_derisi", "Kemik Parçası", "🦴", "İskeletlerden düşer, tüccara satılır.", Price: 8),
+        new("kurt_postu", "Kara Kumaş", "🕸️", "İskelet savaşçıların pelerininden.", Price: 14),
+        new("zehir_ignesi", "Çöl Zehri", "🐍", "Kum Haydutlarının silahlarından.", Price: 22),
+        new("ayi_pencesi", "Şampiyon Nişanı", "🎖️", "İskelet Şampiyonlarından düşer.", Price: 35),
         new("metin_parcasi", "Metin Parçası", "💎", "Metin kristali — DEMİRCİDE + BASMAK İÇİN GEREKLİ.", Price: 150),
         new("buz_kristali", "Buz Kristali", "❄️", "Buz Zirvesi'nin donmuş gözyaşı.", Price: 80),
         // iksirler
@@ -97,11 +97,11 @@ public static class GameConfig
     public static readonly MobDef[] Mobs =
     [
         // — Doğu Vadisi —
-        new("yaban_domuzu", "Yaban Domuzu", false, 1, 60, 5, 2.4f, 6f, 1.7f, 1.6f,
+        new("yaban_domuzu", "İskelet Er", false, 1, 60, 5, 2.4f, 6f, 1.7f, 1.6f,
             25, 5, 15,
             [new("domuz_derisi", .5, 2), new("sifa_otu", .15, 1),
              new("kucuk_hp_iksiri", .22, 2), new("pasli_kilic", .08, 1)], 12f, 1f),
-        new("kurt", "Kurt", false, 3, 115, 9, 3.4f, 8f, 1.8f, 1.4f,
+        new("kurt", "İskelet Savaşçı", false, 3, 115, 9, 3.4f, 8f, 1.8f, 1.4f,
             48, 12, 28,
             [new("kurt_postu", .45, 1), new("kucuk_mp_iksiri", .18, 2),
              new("kucuk_hp_iksiri", .15, 1), new("kurt_disi_kilic", .06, 1)], 15f, 1.05f),
@@ -114,15 +114,15 @@ public static class GameConfig
              new("ejderin_gozyasi", 1.0 / 1_000_000, 1),
              new("kadim_bileklik", 1.0 / 250_000, 1)], 60f, 1f),
         // — Kızıl Çöl —
-        new("col_akrebi", "Çöl Akrebi", false, 6, 200, 15, 2.8f, 7f, 1.7f, 1.5f,
+        new("col_akrebi", "Kum Haydudu", false, 6, 200, 15, 2.8f, 7f, 1.7f, 1.5f,
             90, 22, 48,
             [new("zehir_ignesi", .4, 2), new("kucuk_mp_iksiri", .2, 2),
              new("akrep_hanceri", .06, 1)], 18f, .95f),
-        new("col_kurdu", "Çöl Kurdu", false, 8, 290, 20, 3.6f, 8.5f, 1.8f, 1.3f,
+        new("col_kurdu", "Kum Büyücüsü", false, 8, 290, 20, 3.6f, 8.5f, 1.8f, 1.3f,
             140, 35, 70,
             [new("kurt_postu", .35, 2), new("buyuk_hp_iksiri", .14, 1),
              new("kurt_disi_kilic", .05, 1)], 20f, 1.1f),
-        new("dag_ayisi", "Dağ Ayısı", false, 10, 380, 26, 2.9f, 7.5f, 2f, 1.8f,
+        new("dag_ayisi", "İskelet Şampiyonu", false, 10, 380, 26, 2.9f, 7.5f, 2f, 1.8f,
             190, 45, 95,
             [new("ayi_pencesi", .5, 2), new("buyuk_mp_iksiri", .12, 1),
              new("ayi_baltasi", .06, 1)], 25f, 1.35f),
@@ -136,11 +136,11 @@ public static class GameConfig
              new("ejderin_gozyasi", 1.0 / 1_000_000, 1),
              new("kadim_bileklik", 1.0 / 250_000, 1)], 90f, 1.2f),
         // — Buz Zirvesi —
-        new("buz_kurdu", "Buz Kurdu", false, 12, 480, 34, 3.7f, 9f, 1.8f, 1.3f,
+        new("buz_kurdu", "Buz Hayaleti", false, 12, 480, 34, 3.7f, 9f, 1.8f, 1.3f,
             280, 60, 120,
             [new("buz_kristali", .5, 2), new("buyuk_hp_iksiri", .2, 2),
              new("buyuk_mp_iksiri", .15, 1)], 22f, 1.1f),
-        new("kar_ayisi", "Kar Ayısı", false, 15, 700, 46, 3f, 8f, 2.1f, 1.9f,
+        new("kar_ayisi", "Buz Lordu", false, 15, 700, 46, 3f, 8f, 2.1f, 1.9f,
             420, 90, 180,
             [new("ayi_pencesi", .5, 3), new("buz_kristali", .4, 2),
              new("buz_kilici", .05, 1)], 30f, 1.5f),
@@ -201,12 +201,12 @@ public static class GameConfig
     public static readonly QuestDef[] Quests =
     [
         new("ilk_kan", "İlk Kan", "kill", "yaban_domuzu", 5,
-            "Usta Chen: \"Demek Ejder Tanrısı'nın çağrısını duydun, evlat. Vadi eskisi gibi değil; metinler düştüğünden beri hayvanlar kudurdu. Önce kılıcını kanla tanıştır: 5 Yaban Domuzu avla.\"",
+            "Usta Chen: \"Demek Ejder Tanrısı'nın çağrısını duydun, evlat. Vadi eskisi gibi değil; metinler düştüğünden beri ölüler uyanıyor. Önce kılıcını savaşla tanıştır: 5 İskelet Er avla.\"",
             "Usta Chen: \"İyi iş. Ellerin titremiyor artık. Al şu iksirleri — daha karanlık işler bizi bekliyor.\"",
             100, 60, "kucuk_hp_iksiri", 3, 0),
-        new("surunun_efendisi", "Sürünün Efendisi", "kill", "kurt", 8,
-            "Usta Chen: \"Kurtlar sürüler halinde köyün sınırına iniyor. Bu doğal değil — bir şey onları sürüyor. 8 Kurt avla, belki izlerinde bir cevap buluruz.\"",
-            "Usta Chen: \"Postlarında kara bir toz var... Metin tozu. Korktuğum gibi: taşlar hayvanları zehirliyor.\"",
+        new("surunun_efendisi", "Kemik Devriyesi", "kill", "kurt", 8,
+            "Usta Chen: \"İskelet Savaşçılar bölükler halinde köy sınırına iniyor. Bir şey onları komuta ediyor. 8 İskelet Savaşçı devir, belki kalıntılarında bir cevap buluruz.\"",
+            "Usta Chen: \"Kemiklerinde kara bir toz var... Metin tozu. Korktuğum gibi: taşlar ölüleri diriltiyor.\"",
             250, 150, "kucuk_mp_iksiri", 3, 0),
         new("taslarin_fisiltisi", "Taşların Fısıltısı", "metin", "metin_kaya", 1,
             "Usta Chen: \"Gökten düşen o taşlar... İçlerinde bir fısıltı var, geceleri duyuyorum. Bir Kaya Metini kır ve kalbindeki kristali bana getir.\"",

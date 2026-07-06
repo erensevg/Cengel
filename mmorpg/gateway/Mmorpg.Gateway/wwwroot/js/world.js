@@ -10,6 +10,18 @@ const ANIM = {
   attack: '1H_Melee_Attack_Slice_Diagonal', death: 'Death_A',
 };
 
+// Mob kodu -> animasyonlu iskelet modeli (KayKit Skeletons, CC0)
+const MOB_MODEL = {
+  yaban_domuzu: { file: 'Skeleton_Minion',  scale: 0.92 },
+  kurt:         { file: 'Skeleton_Warrior', scale: 1.0 },
+  col_akrebi:   { file: 'Skeleton_Rogue',   scale: 1.0 },
+  col_kurdu:    { file: 'Skeleton_Mage',    scale: 1.0 },
+  dag_ayisi:    { file: 'Skeleton_Warrior', scale: 1.35 },
+  buz_kurdu:    { file: 'Skeleton_Rogue',   scale: 1.15 },
+  kar_ayisi:    { file: 'Skeleton_Mage',    scale: 1.4 },
+};
+const MOB_FILES = ['Skeleton_Minion', 'Skeleton_Warrior', 'Skeleton_Rogue', 'Skeleton_Mage'];
+
 const MOB_STYLE = {
   yaban_domuzu: { color: 0x8a5a33, w: 1.3, h: 0.8, shape: 'beast' },
   kurt:         { color: 0x9aa3ad, w: 1.2, h: 0.9, shape: 'beast' },
@@ -21,15 +33,18 @@ const MOB_STYLE = {
 
 // Harita temaları: arazi paleti, sis, bitki örtüsü
 const THEMES = {
-  vadi:  { c: [0x3d6b35, 0x5d8a3e, 0x8a7a4e], fog: 0x10142a, fogD: 0.011,
-           leaf: 0x2f5d2a, trunk: 0x5a4128, trees: 150, rocks: 45,
-           sky: ['#2c3f6b', '#151c38', '#0a0c14'] },
-  col:   { c: [0x8a6a34, 0xb08d4a, 0xc9a55e], fog: 0x2a1a0c, fogD: 0.013,
-           leaf: 0x4a7a3a, trunk: 0x6a8a4a, trees: 55, rocks: 90,
-           sky: ['#7a4a24', '#3a2210', '#120a05'] },
-  zirve: { c: [0xaebbd0, 0xcfdae8, 0xeef4fa], fog: 0x27324a, fogD: 0.015,
-           leaf: 0x4a6a5a, trunk: 0x3a3f4a, trees: 170, rocks: 60,
-           sky: ['#4a5f8b', '#222c48', '#0c1018'] },
+  vadi:  { kind: 'vadi', c: [0x3d6b35, 0x5d8a3e, 0x8a7a4e], fog: 0x141c33, fogD: 0.009,
+           leaf: 0x2f5d2a, trunk: 0x5a4128, trees: 170, rocks: 45,
+           sky: ['#4a6fae', '#243458', '#101728'],
+           sun: 0xfff2d8, sunI: 2.2, hemi: 0xbdd4ff, speck: ['#4a7a3e', '#6a9a4a', '#8aa85a'] },
+  col:   { kind: 'col', c: [0x9a7a3e, 0xc09a54, 0xd8b46e], fog: 0x3a2410, fogD: 0.010,
+           leaf: 0x4a7a3a, trunk: 0x6a8a4a, trees: 40, rocks: 90,
+           sky: ['#c07a3a', '#5a3418', '#1a0e06'],
+           sun: 0xffd8a0, sunI: 2.6, hemi: 0xffd8b0, speck: ['#b08a48', '#caa45e', '#e0c078'] },
+  zirve: { kind: 'zirve', c: [0xbecbde, 0xdae4f0, 0xf4f8fc], fog: 0x2c3850, fogD: 0.012,
+           leaf: 0x3a5d4a, trunk: 0x3a3f4a, trees: 190, rocks: 60,
+           sky: ['#7a92c0', '#37456a', '#141a2c'],
+           sun: 0xe8f0ff, sunI: 1.7, hemi: 0xd8e6ff, speck: ['#c8d4e4', '#e2eaf4', '#ffffff'] },
 };
 
 // Arazi yüksekliği — sunucu düz düzlem varsayar; görsel amaçlı hafif dalga.
@@ -168,8 +183,13 @@ export class World {
   async _loadCharacters() {
     try {
       const loader = new GLTFLoader();
-      this.chars = await Promise.all(CHAR_FILES.map(n =>
-        loader.loadAsync(`assets/characters/${n}.glb`)));
+      const [chars, mobs] = await Promise.all([
+        Promise.all(CHAR_FILES.map(n => loader.loadAsync(`assets/characters/${n}.glb`))),
+        Promise.all(MOB_FILES.map(n => loader.loadAsync(`assets/mobs/${n}.glb`))),
+      ]);
+      this.chars = chars;
+      this.mobLib = {};
+      MOB_FILES.forEach((n, i) => this.mobLib[n] = mobs[i]);
     } catch (e) {
       console.warn('Karakter modelleri yüklenemedi, basit modeller kullanılacak', e);
       this.chars = null;
@@ -196,13 +216,34 @@ export class World {
     }
     geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
     geo.computeVertexNormals();
+    // zemin detay dokusu: temaya göre benekli (çimen/kum/kar)
+    const dc = document.createElement('canvas');
+    dc.width = dc.height = 256;
+    const dg = dc.getContext('2d');
+    dg.fillStyle = '#c8c8c8';
+    dg.fillRect(0, 0, 256, 256);
+    for (let i = 0; i < 5200; i++) {
+      dg.fillStyle = Math.random() < 0.75 ? `rgba(255,255,255,${0.05 + Math.random() * 0.1})`
+        : th.speck[(Math.random() * th.speck.length) | 0] + 'aa'.slice(0, 0) ;
+      if (Math.random() < 0.3) dg.fillStyle = th.speck[(Math.random() * th.speck.length) | 0];
+      const w = 1 + Math.random() * 2;
+      dg.globalAlpha = 0.25 + Math.random() * 0.4;
+      dg.fillRect(Math.random() * 256, Math.random() * 256, w, w * (0.5 + Math.random() * 2));
+      dg.globalAlpha = 1;
+    }
+    const detail = new THREE.CanvasTexture(dc);
+    detail.colorSpace = THREE.SRGBColorSpace;
+    detail.wrapS = detail.wrapT = THREE.RepeatWrapping;
+    detail.repeat.set(44, 44);
     const ground = this.ground = new THREE.Mesh(geo,
-      new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95 }));
+      new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95, map: detail }));
     ground.receiveShadow = true;
     this.scene.add(ground);
     this.mapMeshes.push(ground);
     this.scene.fog.color.setHex(th.fog);
     this.scene.fog.density = th.fogD;
+    this.sun.color.setHex(th.sun ?? 0xfff0d0);
+    this.sun.intensity = th.sunI ?? 1.9;
     {
       const c = document.createElement('canvas');
       c.width = 2; c.height = 256;
@@ -573,6 +614,8 @@ export class World {
   }
 
   _makeMob(m) {
+    const mm = MOB_MODEL[m.code];
+    if (mm && this.mobLib && this.mobLib[mm.file]) return this._makeGltfMob(m, mm);
     const st = MOB_STYLE[m.code] || MOB_STYLE.kurt;
     const g = new THREE.Group();
     let bodyMesh;
@@ -667,6 +710,58 @@ export class World {
              code: m.code, maxHp: m.maxHp, lastHp: m.hp, dying: 0 };
   }
 
+  // Animasyonlu iskelet mob (KayKit Skeletons, CC0)
+  _makeGltfMob(m, mm) {
+    const src = this.mobLib[mm.file];
+    const model = cloneSkeleton(src.scene);
+    model.traverse(o => {
+      if (o.isMesh || o.isSkinnedMesh) {
+        o.castShadow = true; o.frustumCulled = false; o.userData.mobId = m.id;
+      }
+    });
+    model.scale.setScalar(mm.scale);
+    const g = new THREE.Group();
+    g.add(model);
+    const mixer = new THREE.AnimationMixer(model);
+    const act = name => {
+      const clip = src.animations.find(a => a.name === name);
+      return clip ? mixer.clipAction(clip) : null;
+    };
+    const actions = { idle: act(ANIM.idle), run: act(ANIM.run), attack: act(ANIM.attack) };
+    actions.idle?.play();
+    const def = this.cfg.mobs.find(x => x.code === m.code);
+    const topY = 2.55 * mm.scale + 0.35;
+    const label = makeLabel(`${def?.name ?? m.code} · Sv ${def?.level ?? '?'}`, '#ffd2ad', 24);
+    label.position.y = topY;
+    const hp = makeHpBar();
+    hp.sprite.position.y = topY - 0.4;
+    g.add(label, hp.sprite);
+    this.scene.add(g);
+    const e = { group: g, hp, body: g, mixer, actions, cur: 'idle', attacking: false,
+                tx: m.x, tz: m.z, x: m.x, z: m.z, code: m.code,
+                maxHp: m.maxHp, lastHp: m.hp, dying: 0, gltf: true };
+    e.setAnim = (name, fade = 0.18) => {
+      if (e.cur === name || !e.actions[name]) return;
+      const from = e.actions[e.cur], to = e.actions[name];
+      to.reset().play();
+      if (from && from !== to) from.crossFadeTo(to, fade, false);
+      e.cur = name;
+    };
+    e.playAttack = () => {
+      const a = e.actions.attack;
+      if (!a || e.attacking || e.dying) return;
+      e.attacking = true;
+      a.reset(); a.setLoop(THREE.LoopOnce); a.timeScale = 1.4; a.clampWhenFinished = false;
+      const from = e.actions[e.cur];
+      if (from && from !== a) from.crossFadeTo(a, 0.08, false);
+      a.play();
+      e.cur = 'attack_';
+      setTimeout(() => { e.attacking = false; e.cur = ''; e.setAnim('idle', 0.12); },
+                 (a.getClip().duration / 1.4) * 1000 - 40);
+    };
+    return e;
+  }
+
   /* ---------------- sunucu durumunu uygula ---------------- */
   applySnapshot(snap) {
     const seenP = new Set();
@@ -725,6 +820,15 @@ export class World {
       e.group.position.y += 0.12;
       const p = this.players.get(this.selfId);
       if (p) p.swing = 0.24;
+    } else {
+      // oyuncu hasar aldı: en yakın mobu görsel saldırıya geçir
+      let near = null, best = 3.2;
+      for (const mb of this.mobs.values()) {
+        if (mb.dying || !mb.playAttack) continue;
+        const d = Math.hypot(mb.x - e.x, mb.z - e.z);
+        if (d < best) { best = d; near = mb; }
+      }
+      near?.playAttack();
     }
   }
 
@@ -766,9 +870,13 @@ export class World {
       const hitPortal = this.ray.intersectObject(this.portal, true)[0];
       if (hitPortal) { this.cb.onPortalClick(); return; }
     }
-    const mobMeshes = [...this.mobs.values()].filter(m => !m.dying).map(m => m.body);
-    const hitMob = this.ray.intersectObjects(mobMeshes, false)[0];
-    if (hitMob) { this.cb.onMobClick(hitMob.object.userData.mobId); return; }
+    let pickedMob = null, pickBest = Infinity;
+    for (const [id, mb] of this.mobs) {
+      if (mb.dying) continue;
+      const hit = this.ray.intersectObject(mb.body || mb.group, true)[0];
+      if (hit && hit.distance < pickBest) { pickBest = hit.distance; pickedMob = id; }
+    }
+    if (pickedMob != null) { this.cb.onMobClick(pickedMob); return; }
     const hitG = this.ray.intersectObject(this.ground, false)[0];
     if (hitG) this.cb.onGroundClick(hitG.point.x, hitG.point.z);
   }
@@ -822,6 +930,11 @@ export class World {
       e.group.position.set(e.x, groundH(e.x, e.z), e.z);
       const mobMoving = Math.hypot(dx, dz) > 0.05;
       if (mobMoving) e.group.rotation.y = Math.atan2(dx, dz);
+      if (e.gltf) {
+        e.mixer.update(dt);
+        if (!e.attacking) e.setAnim(mobMoving ? 'run' : 'idle');
+        continue;
+      }
       const legs = e.group.userData.legs;
       if (legs) {
         e.walk = (e.walk || 0) + (mobMoving ? dt * 11 : 0);
