@@ -11,14 +11,26 @@ const ANIM = {
 };
 
 // Mob kodu -> animasyonlu iskelet modeli (KayKit Skeletons, CC0)
+// tint: boss/element renk tonu (emissive) — büyük düşmanları öne çıkarır.
 const MOB_MODEL = {
-  yaban_domuzu: { file: 'Skeleton_Minion',  scale: 0.92 },
-  kurt:         { file: 'Skeleton_Warrior', scale: 1.0 },
-  col_akrebi:   { file: 'Skeleton_Rogue',   scale: 1.0 },
-  col_kurdu:    { file: 'Skeleton_Mage',    scale: 1.0 },
-  dag_ayisi:    { file: 'Skeleton_Warrior', scale: 1.35 },
-  buz_kurdu:    { file: 'Skeleton_Rogue',   scale: 1.15 },
-  kar_ayisi:    { file: 'Skeleton_Mage',    scale: 1.4 },
+  // Doğu Vadisi
+  yaban_domuzu:   { file: 'Skeleton_Minion',  scale: 0.92 },
+  golge_yarasa:   { file: 'Skeleton_Minion',  scale: 0.72, tint: 0x5a3f8a },
+  kurt:           { file: 'Skeleton_Warrior', scale: 1.0 },
+  mezar_muhafizi: { file: 'Skeleton_Rogue',   scale: 1.05 },
+  kemik_lordu:    { file: 'Skeleton_Warrior', scale: 1.8,  tint: 0x8a1f1f },
+  // Kızıl Çöl
+  col_akrebi:     { file: 'Skeleton_Rogue',   scale: 1.0 },
+  col_yilani:     { file: 'Skeleton_Minion',  scale: 1.1,  tint: 0xc09030 },
+  col_kurdu:      { file: 'Skeleton_Mage',    scale: 1.0 },
+  dag_ayisi:      { file: 'Skeleton_Warrior', scale: 1.35 },
+  kum_firavunu:   { file: 'Skeleton_Mage',    scale: 1.9,  tint: 0xd8a028 },
+  // Buz Zirvesi
+  kar_cini:       { file: 'Skeleton_Minion',  scale: 1.0,  tint: 0x6ab0e0 },
+  buz_kurdu:      { file: 'Skeleton_Rogue',   scale: 1.15, tint: 0x9fd8ff },
+  buz_savascisi:  { file: 'Skeleton_Warrior', scale: 1.2,  tint: 0x9fd8ff },
+  kar_ayisi:      { file: 'Skeleton_Mage',    scale: 1.4,  tint: 0xbfe8ff },
+  ejder_ruhu:     { file: 'Skeleton_Warrior', scale: 2.2,  tint: 0xffcf3a },
 };
 const MOB_FILES = ['Skeleton_Minion', 'Skeleton_Warrior', 'Skeleton_Rogue', 'Skeleton_Mage'];
 
@@ -27,8 +39,13 @@ const MOB_STYLE = {
   kurt:         { color: 0x9aa3ad, w: 1.2, h: 0.9, shape: 'beast' },
   col_akrebi:   { color: 0x8a2f2f, w: 1.4, h: 0.55, shape: 'beast' },
   dag_ayisi:    { color: 0x5b4632, w: 1.7, h: 1.5, shape: 'beast' },
+  // metinler (kristal) — her tür farklı renkte parlar
   metin_kaya:   { color: 0x8f7bd8, emissive: 0x5a3fd0, shape: 'metin', h: 3.2 },
   metin_ates:   { color: 0xff8a4c, emissive: 0xd84b12, shape: 'metin', h: 3.8 },
+  metin_buz:    { color: 0x9fd8ff, emissive: 0x4aa0e0, shape: 'metin', h: 3.5 },
+  metin_golge:  { color: 0x8f6ad0, emissive: 0x3a1f6a, shape: 'metin', h: 3.4 },
+  metin_kum:    { color: 0xe0c078, emissive: 0xc08a20, shape: 'metin', h: 3.6 },
+  metin_ruh:    { color: 0xcfeaff, emissive: 0x7ad0ff, shape: 'metin', h: 4.0 },
 };
 
 // Harita temaları: arazi paleti, sis, bitki örtüsü
@@ -714,9 +731,17 @@ export class World {
   _makeGltfMob(m, mm) {
     const src = this.mobLib[mm.file];
     const model = cloneSkeleton(src.scene);
+    const tintApply = mm.tint ? mt => {
+      const c = mt.clone();
+      c.emissive = new THREE.Color(mm.tint);
+      c.emissiveIntensity = 0.5;
+      return c;
+    } : null;
     model.traverse(o => {
       if (o.isMesh || o.isSkinnedMesh) {
         o.castShadow = true; o.frustumCulled = false; o.userData.mobId = m.id;
+        if (tintApply && o.material)
+          o.material = Array.isArray(o.material) ? o.material.map(tintApply) : tintApply(o.material);
       }
     });
     model.scale.setScalar(mm.scale);

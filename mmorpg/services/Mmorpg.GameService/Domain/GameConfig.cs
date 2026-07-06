@@ -92,6 +92,39 @@ public static class GameConfig
         new("ejderin_gozyasi", "EJDERİN GÖZYAŞI", "💠", "Efsane kolye: takanı Ejder korur.", "kolye", 20, Defense: 10, HpBonus: 100),
         new("deri_bileklik", "Deri Bileklik", "🟤", "Bileği sağlam tutar.", "bileklik", Defense: 2, HpBonus: 25, Price: 550),
         new("kadim_bileklik", "KADİM BİLEKLİK", "🌀", "Efsane: ilk savaşçıların yadigarı.", "bileklik", 10, Defense: 8, HpBonus: 60),
+
+        // ── GENİŞLETME: yeni malzemeler ──
+        new("golge_tozu", "Gölge Tozu", "🌑", "Gölge yaratıklarından süzülür.", Price: 18),
+        new("firavun_altini", "Firavun Altını", "🪙", "Kum lordlarının hazinesinden.", Price: 60),
+        new("ruh_parcasi", "Ruh Parçası", "👻", "Ölmeyen ruhların özü.", Price: 120),
+        // yeni iksirler
+        new("can_macunu", "Can Macunu", "🍶", "Canı 500 tazeler.", "iksir", HealHp: 500, Price: 300),
+        new("mana_macunu", "Mana Macunu", "🫙", "Manayı 350 tazeler.", "iksir", HealMp: 350, Price: 260),
+        // yeni silahlar (kademe kademe)
+        new("golge_hanceri", "Gölge Hançeri", "🗡️", "Karanlıkta parıldar.", "silah", 12, Price: 900),
+        new("kemik_topuzu", "Kemik Topuzu", "🔨", "Ağır kemikten dövme topuz.", "silah", 18, Price: 1500),
+        new("firavun_asasi", "Firavun Asası", "🔱", "Kum lordunun asası.", "silah", 28, Price: 3800),
+        new("ruh_kilici", "Ruh Kılıcı", "👺", "Ruhları biçen kılıç.", "silah", 40, Price: 9000),
+        new("kutsal_kilic", "Kutsal Kılıç", "✨", "Işıkla kutsanmış çelik.", "silah", 58),
+        new("kaos_baltasi", "KAOS BALTASI", "☄️", "Efsane: kaostan doğdu, dünyayı böler.", "silah", 85),
+        // yeni zırhlar
+        new("kemik_zirhi", "Kemik Zırhı", "🩻", "Düşman kemiklerinden örülü.", "zirh", Defense: 10, HpBonus: 45, Price: 900),
+        new("firavun_zirhi", "Firavun Zırhı", "🏺", "Altın işlemeli kum zırhı.", "zirh", Defense: 20, HpBonus: 90, Price: 3500),
+        new("ruh_zirhi", "Ruh Zırhı", "🕯️", "Ruhların koruması altında.", "zirh", Defense: 25, HpBonus: 130),
+        // yeni kalkanlar
+        new("kemik_kalkani", "Kemik Kalkanı", "🦴", "Kaburgadan örülmüş kalkan.", "kalkan", Defense: 7, Price: 700),
+        new("firavun_kalkani", "Firavun Kalkanı", "🛡️", "Altın kaplama çöl kalkanı.", "kalkan", Defense: 15, HpBonus: 30, Price: 2000),
+        new("ruh_kalkani", "Ruh Kalkanı", "🌟", "Ruh enerjisiyle titreşir.", "kalkan", Defense: 24, HpBonus: 60),
+        // yeni takılar — küpe
+        new("gumus_kupe", "Gümüş Küpe", "⚪", "Zarif gümüş işçiliği.", "kupe", 5, HpBonus: 20, Price: 1200),
+        new("ruh_kupesi", "Ruh Küpesi", "💜", "Ruhların fısıltısını taşır.", "kupe", 12, Defense: 5, HpBonus: 45),
+        // kolye
+        new("kemik_kolye", "Kemik Kolye", "📿", "Küçük kemiklerden dizilmiş.", "kolye", 7, HpBonus: 30, Price: 1400),
+        new("firavun_kolyesi", "Firavun Kolyesi", "🧿", "Kum lordunun mührü.", "kolye", 14, Defense: 6, HpBonus: 55),
+        new("zaman_kolyesi", "ZAMAN KOLYESİ", "⏳", "Efsane: zamanı bir an durdurur.", "kolye", 25, Defense: 12, HpBonus: 130),
+        // bileklik
+        new("gumus_bileklik", "Gümüş Bileklik", "⚪", "Hafif ama sağlam.", "bileklik", Defense: 4, HpBonus: 35, Price: 900),
+        new("ruh_bilekligi", "Ruh Bilekliği", "🔗", "Ruh zinciriyle güçlenir.", "bileklik", 6, Defense: 12, HpBonus: 70),
     ];
 
     public static readonly MobDef[] Mobs =
@@ -153,6 +186,70 @@ public static class GameConfig
              new("ejder_kilici", 1.0 / 3_000_000, 1),
              new("ejderin_gozyasi", 1.0 / 1_000_000, 1),
              new("kadim_bileklik", 1.0 / 250_000, 1)], 120f, 1.35f),
+
+        // ═══ GENİŞLETME: yeni canavarlar, boss'lar ve metinler ═══
+        // — Doğu Vadisi —
+        new("golge_yarasa", "Gölge Sıçanı", false, 2, 45, 4, 4.2f, 7f, 1.5f, 1.2f,
+            18, 3, 10,
+            [new("golge_tozu", .5, 2), new("sifa_otu", .12, 1)], 10f, .72f),
+        new("mezar_muhafizi", "Mezar Muhafızı", false, 4, 150, 12, 3.0f, 7f, 1.8f, 1.5f,
+            65, 15, 32,
+            [new("kurt_postu", .4, 1), new("golge_hanceri", .05, 1),
+             new("kucuk_hp_iksiri", .2, 2), new("kemik_zirhi", .04, 1)], 16f, 1.05f),
+        new("kemik_lordu", "Kemik Lordu", false, 6, 620, 22, 3.2f, 10f, 2.2f, 1.7f,
+            260, 80, 160,
+            [new("golge_tozu", .8, 3), new("kemik_topuzu", .12, 1),
+             new("kemik_zirhi", .1, 1), new("kemik_kalkani", .1, 1),
+             new("gumus_kupe", .05, 1), new("kadim_bileklik", 1.0 / 250_000, 1)], 90f, 1.8f),
+        new("metin_golge", "Gölge Metini", true, 4, 700, 0, 0f, 0f, 0f, 0f,
+            320, 140, 280,
+            [new("metin_parcasi", 1, 2), new("golge_tozu", 1, 3),
+             new("buyuk_hp_iksiri", .5, 1), new("isinlanma_parsomeni", .4, 1),
+             new("kemik_zirhi", .08, 1), new("golge_hanceri", .1, 1),
+             new("ejder_kilici", 1.0 / 3_000_000, 1),
+             new("kadim_bileklik", 1.0 / 250_000, 1)], 70f, .95f),
+        // — Kızıl Çöl —
+        new("col_yilani", "Kum Sürüngeni", false, 7, 240, 17, 3.9f, 8f, 1.7f, 1.3f,
+            110, 26, 55,
+            [new("zehir_ignesi", .45, 2), new("firavun_altini", .3, 2),
+             new("kucuk_mp_iksiri", .18, 2)], 16f, 1.1f),
+        new("kum_firavunu", "Kum Firavunu", false, 12, 1400, 40, 3.3f, 11f, 2.4f, 1.8f,
+            620, 220, 420,
+            [new("firavun_altini", .9, 4), new("firavun_asasi", .1, 1),
+             new("firavun_zirhi", .09, 1), new("firavun_kalkani", .09, 1),
+             new("firavun_kolyesi", .05, 1), new("ejderin_gozyasi", 1.0 / 1_000_000, 1),
+             new("zaman_kolyesi", 1.0 / 500_000, 1)], 120f, 1.9f),
+        new("metin_kum", "Kum Metini", true, 8, 1500, 0, 0f, 0f, 0f, 0f,
+            880, 380, 660,
+            [new("metin_parcasi", 1, 4), new("firavun_altini", 1, 3),
+             new("buyuk_hp_iksiri", .7, 2), new("isinlanma_parsomeni", .6, 1),
+             new("firavun_asasi", .12, 1), new("firavun_zirhi", .08, 1),
+             new("ejder_kilici", 1.0 / 3_000_000, 1),
+             new("zaman_kolyesi", 1.0 / 500_000, 1)], 100f, 1.25f),
+        // — Buz Zirvesi —
+        new("kar_cini", "Kar Cini", false, 11, 420, 30, 4.0f, 8.5f, 1.6f, 1.2f,
+            250, 55, 110,
+            [new("buz_kristali", .5, 2), new("mana_macunu", .12, 1),
+             new("ruh_parcasi", .2, 1)], 15f, 1.0f),
+        new("buz_savascisi", "Donmuş Savaşçı", false, 13, 560, 38, 3.4f, 8.5f, 2.0f, 1.5f,
+            320, 70, 140,
+            [new("buz_kristali", .5, 2), new("ruh_parcasi", .3, 2),
+             new("ruh_zirhi", .04, 1), new("kutsal_kilic", .03, 1)], 22f, 1.2f),
+        new("ejder_ruhu", "Ejder Ruhu", false, 20, 3200, 70, 3.5f, 13f, 2.6f, 2.0f,
+            1500, 500, 1000,
+            [new("ruh_parcasi", 1, 5), new("ruh_kilici", .1, 1),
+             new("ruh_zirhi", .1, 1), new("ruh_kalkani", .08, 1),
+             new("ruh_kupesi", .06, 1), new("kutsal_kilic", .05, 1),
+             new("kaos_baltasi", 1.0 / 5_000_000, 1),
+             new("zaman_kolyesi", 1.0 / 500_000, 1)], 180f, 2.2f),
+        new("metin_ruh", "Ruh Metini", true, 16, 3500, 0, 0f, 0f, 0f, 0f,
+            2600, 1100, 2000,
+            [new("metin_parcasi", 1, 8), new("ruh_parcasi", 1, 4),
+             new("ruh_kilici", .12, 1), new("ruh_zirhi", .1, 1),
+             new("isinlanma_parsomeni", .8, 2), new("ruh_bilekligi", .1, 1),
+             new("kaos_baltasi", 1.0 / 5_000_000, 1),
+             new("ejderin_gozyasi", 1.0 / 1_000_000, 1),
+             new("zaman_kolyesi", 1.0 / 500_000, 1)], 150f, 1.4f),
     ];
 
     public static readonly Dictionary<string, string> MetinGuard = new()
@@ -160,6 +257,9 @@ public static class GameConfig
         ["metin_kaya"] = "kurt",
         ["metin_ates"] = "col_kurdu",
         ["metin_buz"] = "buz_kurdu",
+        ["metin_golge"] = "mezar_muhafizi",
+        ["metin_kum"] = "col_yilani",
+        ["metin_ruh"] = "buz_savascisi",
     };
 
     public static readonly SpawnZone[] Spawns =
@@ -186,6 +286,24 @@ public static class GameConfig
         new("zirve", "kar_ayisi", -60f, -45f, 16f, 4),
         new("zirve", "metin_buz", 0f, 55f, 0f, 1),
         new("zirve", "metin_buz", -70f, -20f, 0f, 1),
+
+        // ── GENİŞLETME spawnları ──
+        new("dogu", "golge_yarasa", -20f, 55f, 16f, 8),
+        new("dogu", "mezar_muhafizi", 55f, -25f, 18f, 6),
+        new("dogu", "kemik_lordu", -78f, 66f, 6f, 1),
+        new("dogu", "metin_golge", 42f, 70f, 0f, 1),
+        new("dogu", "metin_golge", -85f, -10f, 0f, 1),
+
+        new("col", "col_yilani", -20f, -60f, 20f, 9),
+        new("col", "kum_firavunu", 72f, 72f, 6f, 1),
+        new("col", "metin_kum", -42f, 66f, 0f, 1),
+        new("col", "metin_kum", 76f, 24f, 0f, 1),
+
+        new("zirve", "kar_cini", -15f, -55f, 20f, 9),
+        new("zirve", "buz_savascisi", 60f, -60f, 18f, 6),
+        new("zirve", "ejder_ruhu", 0f, 82f, 6f, 1),
+        new("zirve", "metin_ruh", -76f, 55f, 0f, 1),
+        new("zirve", "metin_ruh", 72f, 14f, 0f, 1),
     ];
 
     public static readonly SkillDef[] Skills =

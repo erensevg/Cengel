@@ -75,6 +75,23 @@ Test kancası: tarayıcı konsolunda `window.__mmo()`.
   Sonraki mob görsel geliştirmesi için: KayKit Skeletons paketinde başka varyantlar
   (Skeleton_Archer vb.) veya boss için ayrı GLB → `MOB_MODEL`'e ekle.
 
+## İÇERİK GENİŞLETMESİ ✅ (daha fazla canavar/metin/item)
+
+- **21 mob** (önce 10): her haritaya yeni türler + boss'lar + yeni metinler.
+  - Doğu Vadisi: Gölge Sıçanı (hızlı sürü), Mezar Muhafızı, **Kemik Lordu (boss)**,
+    Gölge Metini.
+  - Kızıl Çöl: Kum Sürüngeni, **Kum Firavunu (boss)**, Kum Metini.
+  - Buz Zirvesi: Kar Cini, Donmuş Savaşçı, **Ejder Ruhu (final boss, Sv20)**, Ruh Metini.
+  - Boss/element tonlaması: `MOB_MODEL[code].tint` → `_makeGltfMob` emissive uygular
+    (kırmızı=boss, mavi=buz, altın=firavun). Boss'lar tek spawn + uzun respawn.
+  - `metin_buz` istemcide kutu görünüyordu (MOB_STYLE eksik) → düzeltildi; yeni
+    metinler (golge/kum/ruh) kendi kristal renkleriyle.
+- **55 item** (önce ~28): yeni malzemeler (Gölge Tozu/Firavun Altını/Ruh Parçası),
+  büyük iksirler (Can/Mana Macunu), her tür için kademeli silah/zırh/kalkan/takı,
+  yeni efsane dropları (Kaos Baltası 1/5M, Zaman Kolyesi 1/500k).
+- Yeni metin bekçileri (MetinGuard) + spawn bölgeleri eklendi. Doğu Vadisi'nde
+  varlık sayısı ~30 → ~47.
+
 Bilinen kısıt: görev İLERLEMESİ (progress) yeniden girişte sıfırlanır (yalnızca
 tamamlanan görevler DB'de); CharacterQuest.Progress alanına periyodik yazım eklenebilir.
 
