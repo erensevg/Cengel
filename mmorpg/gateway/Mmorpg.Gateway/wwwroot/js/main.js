@@ -27,6 +27,31 @@ $('btn-login').addEventListener('click', () => auth('login'));
 $('btn-register').addEventListener('click', () => auth('register'));
 $('in-pass').addEventListener('keydown', e => { if (e.key === 'Enter') auth('login'); });
 
+/* ---------------- sınıf seçimi ---------------- */
+function chooseClass() {
+  return new Promise(resolve => {
+    const wrap = $('cs-cards');
+    wrap.innerHTML = '';
+    for (const c of cfg.classes) {
+      const el = document.createElement('div');
+      el.className = 'cs-card';
+      el.innerHTML = `
+        <div class="cs-icon">${c.icon}</div>
+        <div class="cs-name">${esc(c.name)}</div>
+        <div class="cs-desc">${esc(c.desc)}</div>
+        <div class="cs-stats">CAN ×${c.hpMul} · HASAR ×${c.dmgMul} · SAV +${c.defBonus}</div>
+        <button>SEÇ</button>`;
+      el.querySelector('button').onclick = () => {
+        $('class-select').classList.add('hidden');
+        resolve(c.code);
+      };
+      wrap.appendChild(el);
+    }
+    $('login').classList.add('hidden');
+    $('class-select').classList.remove('hidden');
+  });
+}
+
 /* ---------------- oyun başlatma ---------------- */
 async function startGame() {
   cfg = await api('/api/game/config');
@@ -63,7 +88,13 @@ async function startGame() {
   wireChatEvents();
   await Promise.all([gameConn.start(), chatConn.start(), world.assetsReady]);
 
-  const join = await gameConn.invoke('JoinWorld');
+  let join = await gameConn.invoke('JoinWorld');
+  if (join.needClass) {
+    const cls = await chooseClass();
+    const cr = await gameConn.invoke('CreateCharacter', cls);
+    if (cr.error) { $('login-err').textContent = cr.error; return; }
+    join = await gameConn.invoke('JoinWorld');
+  }
   if (join.error) { $('login-err').textContent = join.error; return; }
   selfId = join.self.id;
   world.selfId = selfId;

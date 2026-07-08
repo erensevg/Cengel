@@ -23,23 +23,7 @@ public class GameHub(WorldState world, WorldService worldService, GameDb db) : H
 
         var ch = await db.Characters.FirstOrDefaultAsync(c => c.UserId == UserId);
         if (ch is null)
-        {
-            ch = new Character
-            {
-                Id = Guid.NewGuid(), UserId = UserId, Name = Username,
-                Level = 1, Xp = 0, Yang = 0, MapId = GameConfig.StartMap,
-                PosX = GameConfig.SpawnPoint[0], PosZ = GameConfig.SpawnPoint[1],
-                CreatedAt = DateTime.UtcNow, LastSeenAt = DateTime.UtcNow,
-            };
-            db.Characters.Add(ch);
-            // başlangıç paketi: 5 küçük can + 5 küçük mana iksiri
-            db.Items.AddRange(
-                new InventoryItem { Id = Guid.NewGuid(), CharacterId = ch.Id,
-                    ItemCode = "kucuk_hp_iksiri", Count = 5, SlotIndex = 0 },
-                new InventoryItem { Id = Guid.NewGuid(), CharacterId = ch.Id,
-                    ItemCode = "kucuk_mp_iksiri", Count = 5, SlotIndex = 1 });
-            await db.SaveChangesAsync();
-        }
+            return new { needClass = true };   // istemci sınıf seçim ekranını açar
         if (GameConfig.MapById(ch.MapId) is null) ch.MapId = GameConfig.StartMap;
 
         var p = new PlayerState
@@ -47,11 +31,12 @@ public class GameHub(WorldState world, WorldService worldService, GameDb db) : H
             ConnectionId = Context.ConnectionId,
             UserId = UserId, CharacterId = ch.Id, Name = ch.Name,
             Level = ch.Level, Xp = ch.Xp, Yang = ch.Yang,
+            ClassType = ch.ClassType,
             X = ch.PosX, Z = ch.PosZ, MapId = ch.MapId,
-            MaxHp = GameConfig.MaxHpFor(ch.Level),
-            Hp = GameConfig.MaxHpFor(ch.Level),
-            MaxMp = GameConfig.MaxMpFor(ch.Level),
-            Mp = GameConfig.MaxMpFor(ch.Level),
+            MaxHp = GameConfig.MaxHpFor(ch.Level, ch.ClassType),
+            Hp = GameConfig.MaxHpFor(ch.Level, ch.ClassType),
+            MaxMp = GameConfig.MaxMpFor(ch.Level, ch.ClassType),
+            Mp = GameConfig.MaxMpFor(ch.Level, ch.ClassType),
             SkillPoints = ch.SkillPoints,
             HasHorse = ch.HasHorse, HorseArmored = ch.HorseArmored,
         };
@@ -75,7 +60,7 @@ public class GameHub(WorldState world, WorldService worldService, GameDb db) : H
             ? GameConfig.Quests[p.QuestIndex] : null;
         return new
         {
-            self = new { id = p.CharacterId, name = p.Name, x = p.X, z = p.Z, mapId = p.MapId },
+            self = new { id = p.CharacterId, name = p.Name, cls = p.ClassType, x = p.X, z = p.Z, mapId = p.MapId },
             world = world.Snapshot(p.MapId),
             skills = p.Skills,
             quest = quest is null ? null : new
@@ -85,6 +70,30 @@ public class GameHub(WorldState world, WorldService worldService, GameDb db) : H
                 isFirst = p.QuestIndex == 0,
             },
         };
+    }
+
+    /// <summary>Yeni karakter oluştur (sınıf seçimiyle). Zaten varsa reddedilir.</summary>
+    public async Task<object> CreateCharacter(string classType)
+    {
+        if (!GameConfig.IsValidClass(classType))
+            return new { error = "Geçersiz sınıf." };
+        if (await db.Characters.AnyAsync(c => c.UserId == UserId))
+            return new { error = "Zaten bir karakterin var." };
+        var ch = new Character
+        {
+            Id = Guid.NewGuid(), UserId = UserId, Name = Username, ClassType = classType,
+            Level = 1, Xp = 0, Yang = 0, MapId = GameConfig.StartMap,
+            PosX = GameConfig.SpawnPoint[0], PosZ = GameConfig.SpawnPoint[1],
+            CreatedAt = DateTime.UtcNow, LastSeenAt = DateTime.UtcNow,
+        };
+        db.Characters.Add(ch);
+        db.Items.AddRange(
+            new InventoryItem { Id = Guid.NewGuid(), CharacterId = ch.Id,
+                ItemCode = "kucuk_hp_iksiri", Count = 5, SlotIndex = 0 },
+            new InventoryItem { Id = Guid.NewGuid(), CharacterId = ch.Id,
+                ItemCode = "kucuk_mp_iksiri", Count = 5, SlotIndex = 1 });
+        await db.SaveChangesAsync();
+        return new { ok = true, classType };
     }
 
     public Task MoveTo(float x, float z)
@@ -117,7 +126,7 @@ public class GameHub(WorldState world, WorldService worldService, GameDb db) : H
         if (Me is { Dead: true } p)
         {
             p.Dead = false;
-            p.MaxHp = GameConfig.MaxHpFor(p.Level);
+            p.MaxHp = GameConfig.MaxHpFor(p.Level, p.ClassType) + p.HpBonus;
             p.Hp = p.MaxHp;
             p.Mp = p.MaxMp;
             p.X = GameConfig.SpawnPoint[0]; p.Z = GameConfig.SpawnPoint[1];

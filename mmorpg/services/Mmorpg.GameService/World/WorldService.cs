@@ -358,9 +358,9 @@ public class WorldService(
         }
         if (leveled)
         {
-            p.MaxHp = GameConfig.MaxHpFor(p.Level) + p.HpBonus;
+            p.MaxHp = GameConfig.MaxHpFor(p.Level, p.ClassType) + p.HpBonus;
             p.Hp = p.MaxHp;
-            p.MaxMp = GameConfig.MaxMpFor(p.Level);
+            p.MaxMp = GameConfig.MaxMpFor(p.Level, p.ClassType);
             p.Mp = p.MaxMp;
             _ = Group(world.Maps[p.MapId]).SendAsync("levelUp",
                 new { id = p.CharacterId, name = p.Name, level = p.Level });
@@ -521,7 +521,7 @@ public class WorldService(
     public static void RecalcStats(PlayerState p,
         IEnumerable<(string Code, int Plus)> equipped)
     {
-        int atk = 0, def = 0, hp = 0, maxPlus = -1;
+        int atk = 0, def = GameConfig.ClassByCode(p.ClassType).DefBonus, hp = 0, maxPlus = -1;
         foreach (var (code, plus) in equipped)
         {
             var d = GameConfig.ItemByCode(code);
@@ -535,7 +535,7 @@ public class WorldService(
         p.Defense = def;
         p.HpBonus = hp;
         p.GlowTier = maxPlus >= 11 ? 3 : maxPlus >= 10 ? 2 : maxPlus >= 9 ? 1 : 0;
-        var newMax = GameConfig.MaxHpFor(p.Level) + hp;
+        var newMax = GameConfig.MaxHpFor(p.Level, p.ClassType) + hp;
         if (p.MaxHp != newMax)
         {
             p.Hp = Math.Min(newMax, Math.Max(1, p.Hp));

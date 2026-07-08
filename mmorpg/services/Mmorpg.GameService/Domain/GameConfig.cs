@@ -42,6 +42,24 @@ public static class GameConfig
     public static int MaxMpFor(int level) => 40 + 12 * level;
     public static int BaseDamageFor(int level) => 8 + 4 * level;
 
+    // sınıfa göre ölçekli statlar
+    public static int MaxHpFor(int level, string cls) => (int)(MaxHpFor(level) * ClassByCode(cls).HpMul);
+    public static int MaxMpFor(int level, string cls) => (int)(MaxMpFor(level) * ClassByCode(cls).MpMul);
+    public static int BaseDamageFor(int level, string cls) => (int)(BaseDamageFor(level) * ClassByCode(cls).DmgMul);
+
+    public record ClassDef(string Code, string Name, string Icon, string Desc,
+        float HpMul, float MpMul, float DmgMul, int DefBonus);
+    public static readonly ClassDef[] Classes =
+    [
+        new("savasci", "Savaşçı", "⚔️", "Yüksek can ve savunma; yakın dövüş ustası.", 1.25f, 0.8f, 1.0f, 8),
+        new("ninja",   "Ninja",   "🗡️", "Hızlı ve ölümcül; yüksek kritik.",            0.9f, 0.9f, 1.15f, 2),
+        new("buyucu",  "Büyücü",  "🔮", "Güçlü büyüler ama kırılgan.",                 0.8f, 1.4f, 1.3f, 0),
+        new("tritas",  "Tritas",  "😈", "Lanetli ırk; dengeli güç ve karanlık enerji.", 1.1f, 1.1f, 1.15f, 4),
+    ];
+    public static ClassDef ClassByCode(string code) =>
+        Array.Find(Classes, c => c.Code == code) ?? Classes[0];
+    public static bool IsValidClass(string code) => Array.Exists(Classes, c => c.Code == code);
+
     public static readonly MapDef[] Maps =
     [
         new("dogu", "Doğu Vadisi", 1, "vadi", 6f, -6f,
@@ -442,6 +460,7 @@ public static class GameConfig
         mobs = Mobs,
         items = Items,
         skills = Skills,
+        classes = Classes,
         maps = Maps,
         npcs = Npcs,
         upgradeChance = UpgradeChance,

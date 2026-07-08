@@ -124,11 +124,28 @@ tamamlanan görevler DB'de); CharacterQuest.Progress alanına periyodik yazım e
   Hız binekte +%60, zırhlı +%90. Seyis Bulut'ta Ahır penceresi (al/zırhla/bin);
   H tuşu bin/in; prosedürel at meshi + oyuncu yükselir. Character.HasHorse/HorseArmored.
 
+## KARAKTER SINIFLARI ✅ (Faz 1)
+
+- **4 sınıf**: Savaşçı (⚔️ yüksek can/savunma), Ninja (🗡️ hızlı/kritik),
+  Büyücü (🔮 güçlü büyü/kırılgan), Tritas (😈 lanetli ırk, dengeli). Her sınıfın
+  can/mana/hasar çarpanı + savunma bonusu (`GameConfig.ClassDef`).
+- **Karakter seçim ekranı**: yeni hesap ilk girişte sınıf seçer (JoinWorld→needClass
+  →CreateCharacter). `Character.ClassType` (şema).
+- **Sınıfa özel model**: Savaşçı=Şövalye, Ninja=Kurnaz, Büyücü=Büyücü,
+  Tritas=Barbar(karanlık kırmızı ton). world.js `CLASS_MODEL`/`CLASS_TINT`.
+- PvP düello ✅ (istek→kabul→HitPlayer, kaybeden 1 canla kalır).
+
 ## YAPILACAK — öncelik sırasıyla 🔜
 
-0. **PvP düello + oyuncular arası ticaret + oyuncu pazarı** (sıradaki büyük iş):
-   düello isteği→kabul→HitPlayer; ticaret penceresi (item+yang takas); pazar
-   tezgahı (pazar itemi al → kişisel satıcı moduna geç). Epic 1/10000 drop katmanı.
+0. **Sınıf sistemi Faz 2-4** (kullanıcı isteği):
+   - Faz 2: sınıf başına 6 skill (seviye 4'te başlar, her seviye yükseltilir);
+     `SkillDef`'e ClassReq; istemci skill penceresi sınıfa göre.
+   - Faz 3: sınıf-kısıtlı zırhlar (`ItemDef.ClassReq`); Equip'te sınıf kontrolü;
+     her sınıfa özel zırh setleri (aynı seviye şartı).
+   - Faz 4: Metin2 G1/G2/P1/P2 kademe sistemi + Ruh Taşı (nadir); +N üstüne kademe.
+1. **Oyuncular arası ticaret + oyuncu pazarı**: takas penceresi; pazar tezgahı.
+   Epic 1/10000 drop katmanı.
+2. **Kuşanılan ekipmanın karakterde görünmesi** (silah/kask mesh'i modele ekle).
 
 1. **Karakter sınıfları** (Savaşçı/Ninja/Sura/Şaman): `Character`'a `ClassType`
    ekle; `GameConfig`'e sınıf başına stat/katsayı; istemcide sınıf seçim ekranı

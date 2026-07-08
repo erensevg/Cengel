@@ -5,6 +5,9 @@ import { clone as cloneSkeleton } from 'three/addons/utils/SkeletonUtils.js';
 
 // KayKit Adventurers (CC0) karakterleri + animasyon adları
 const CHAR_FILES = ['Knight', 'Barbarian', 'Rogue', 'Mage'];
+// sınıf -> model indeksi (Knight0/Barbarian1/Rogue2/Mage3) + Tritas karanlık tonu
+const CLASS_MODEL = { savasci: 0, ninja: 2, buyucu: 3, tritas: 1 };
+const CLASS_TINT = { tritas: 0x8a1030 };
 const ANIM = {
   idle: 'Idle', run: 'Running_A',
   attack: '1H_Melee_Attack_Slice_Diagonal', death: 'Death_A',
@@ -536,17 +539,23 @@ export class World {
   }
 
   _makeGltfPlayer(p, self) {
-    // kendin: Şövalye; diğerleri isim karmasına göre çeşitlensin
-    let idx = 0;
-    if (!self) {
-      let h = 0;
-      for (const ch of String(p.id)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
-      idx = h % this.chars.length;
-    }
+    // sınıfa göre model: Savaşçı=Şövalye, Ninja=Kurnaz, Büyücü=Büyücü, Tritas=Barbar(karanlık)
+    const idx = CLASS_MODEL[p.cls] ?? 0;
     const src = this.chars[idx];
     const model = cloneSkeleton(src.scene);
+    const tint = CLASS_TINT[p.cls];
+    const tintApply = tint ? mt => {
+      const c = mt.clone();
+      c.emissive = new THREE.Color(tint); c.emissiveIntensity = 0.45;
+      c.color = c.color.clone().multiplyScalar(0.7);
+      return c;
+    } : null;
     model.traverse(o => {
-      if (o.isMesh || o.isSkinnedMesh) { o.castShadow = true; o.frustumCulled = false; }
+      if (o.isMesh || o.isSkinnedMesh) {
+        o.castShadow = true; o.frustumCulled = false;
+        if (tintApply && o.material)
+          o.material = Array.isArray(o.material) ? o.material.map(tintApply) : tintApply(o.material);
+      }
     });
     const g = new THREE.Group();
     g.add(model);

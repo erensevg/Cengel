@@ -7,6 +7,7 @@ public class Character
     public Guid Id { get; set; }
     public Guid UserId { get; set; }
     public string Name { get; set; } = "";
+    public string ClassType { get; set; } = "savasci";   // savasci/ninja/buyucu/tritas
     public int Level { get; set; } = 1;
     public long Xp { get; set; }
     public long Yang { get; set; }

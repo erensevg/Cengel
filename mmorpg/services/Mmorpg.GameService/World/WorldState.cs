@@ -9,6 +9,7 @@ public class PlayerState
     public required Guid UserId { get; init; }
     public required Guid CharacterId { get; init; }
     public required string Name { get; init; }
+    public string ClassType = "savasci";
     public string MapId = GameConfig.StartMap;
     public int Level;
     public long Xp;
@@ -52,7 +53,7 @@ public class PlayerState
     {
         get
         {
-            var d = GameConfig.BaseDamageFor(Level) + AttackBonus;
+            var d = GameConfig.BaseDamageFor(Level, ClassType) + AttackBonus;
             return BuffActive ? (int)(d * BuffMult) : d;
         }
     }
@@ -137,7 +138,7 @@ public class WorldState
             mapId,
             players = map.Players.Values.Select(p => new
             {
-                id = p.CharacterId, name = p.Name, x = p.X, z = p.Z,
+                id = p.CharacterId, name = p.Name, cls = p.ClassType, x = p.X, z = p.Z,
                 hp = p.Hp, maxHp = p.MaxHp, level = p.Level, dead = p.Dead,
                 moving = p.TargetX.HasValue, buff = p.BuffActive, glow = p.GlowTier,
                 mounted = p.Mounted, horseArmored = p.HorseArmored,
